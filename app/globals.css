@@ -1,0 +1,69 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 11% 8%;
+    --foreground: 210 11% 85%;
+    --card: 210 11% 10%;
+    --card-foreground: 210 11% 85%;
+    --popover: 210 11% 10%;
+    --popover-foreground: 210 11% 85%;
+    --primary: 0 72% 47%;
+    --primary-foreground: 210 11% 85%;
+    --secondary: 210 11% 15%;
+    --secondary-foreground: 210 11% 85%;
+    --muted: 210 11% 15%;
+    --muted-foreground: 210 11% 60%;
+    --accent: 0 72% 47%;
+    --accent-foreground: 210 11% 85%;
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 210 11% 85%;
+    --border: 210 11% 20%;
+    --input: 210 11% 20%;
+    --ring: 0 72% 47%;
+    --radius: 0px;
+
+    --sidebar-background: 210 11% 6%;
+    --sidebar-foreground: 210 11% 85%;
+    --sidebar-primary: 0 72% 47%;
+    --sidebar-primary-foreground: 210 11% 85%;
+    --sidebar-accent: 210 11% 12%;
+    --sidebar-accent-foreground: 210 11% 85%;
+    --sidebar-border: 210 11% 18%;
+    --sidebar-ring: 0 72% 47%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "JetBrains Mono", "Courier New", monospace;
+  }
+}
+
+@layer components {
+  .tactical-button {
+    @apply bg-secondary border border-border text-foreground hover:bg-accent hover:text-accent-foreground transition-colors duration-150 font-mono text-xs uppercase tracking-wider;
+  }
+
+  .status-indicator {
+    @apply inline-block w-2 h-2 border border-current;
+  }
+
+  .tactical-table {
+    @apply w-full border-collapse border border-border bg-card;
+  }
+
+  .tactical-table th {
+    @apply border border-border bg-secondary px-2 py-1 text-left text-xs font-mono uppercase tracking-wider;
+  }
+
+  .tactical-table td {
+    @apply border border-border px-2 py-1 text-xs font-mono;
+  }
+}
