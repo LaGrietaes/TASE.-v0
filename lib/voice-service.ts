@@ -9,6 +9,10 @@ export interface VoiceCommand {
   type: CommandType
   status: "pending" | "processing" | "completed" | "failed"
   response?: string
+  action?: () => void
+  description?: string
+  keyword?: string
+  route?: string
 }
 
 export interface VoiceConfig {
@@ -17,6 +21,13 @@ export interface VoiceConfig {
   timeoutMs: number
   language: string
   enableContinuousListening: boolean
+  selectedMicrophoneId?: string
+}
+
+export interface AudioDevice {
+  deviceId: string
+  label: string
+  kind: MediaDeviceKind
 }
 
 export type CommandType = "navigation" | "system" | "query" | "action" | "unknown"
@@ -28,6 +39,25 @@ export class VoiceService {
   private recognition: SpeechRecognition | null = null
   private synthesis: SpeechSynthesis | null = null
   private listeners: Map<string, Function[]> = new Map()
+  private commands: VoiceCommand[] = [
+    { keyword: "intel", route: "intel", response: "Navigating to intel feed" },
+    { keyword: "mission", route: "mission-board", response: "Navigating to mission board" },
+    { keyword: "communication", route: "comm", response: "Navigating to communications" },
+    { keyword: "diagnostic", route: "diagnostics", response: "Navigating to diagnostics" },
+    { keyword: "signal", route: "signals", response: "Navigating to signals" },
+    { keyword: "setting", route: "settings", response: "Navigating to settings" },
+  ]
+
+  // Audio Analysis
+  private audioContext: AudioContext | null = null
+  private analyser: AnalyserNode | null = null
+  private microphone: MediaStreamAudioSourceNode | null = null
+  private dataArray: Uint8Array | null = null
+  private stream: MediaStream | null = null
+  private animationFrame: number | null = null
+
+  // Audio devices
+  private availableDevices: AudioDevice[] = []
 
   constructor() {
     this.config = {
@@ -38,8 +68,14 @@ export class VoiceService {
       enableContinuousListening: true,
     }
 
-    this.initializeSpeechRecognition()
+    if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
+      this.recognition = new (window as any).webkitSpeechRecognition()
+      this.setupRecognition()
+    }
+
     this.initializeSpeechSynthesis()
+    this.initializeAudioContext()
+    this.enumerateAudioDevices()
   }
 
   static getInstance(): VoiceService {
@@ -49,52 +85,126 @@ export class VoiceService {
     return VoiceService.instance
   }
 
-  private initializeSpeechRecognition() {
-    if (typeof window !== "undefined" && "webkitSpeechRecognition" in window) {
-      this.recognition = new (window as any).webkitSpeechRecognition()
-      this.recognition.continuous = true
-      this.recognition.interimResults = true
-      this.recognition.lang = this.config.language
+  private async initializeAudioContext() {
+    try {
+      this.audioContext = new (window.AudioContext || (window as any).webkitAudioContext)()
+      this.analyser = this.audioContext.createAnalyser()
+      this.analyser.fftSize = 256
+      this.analyser.smoothingTimeConstant = 0.8
+      this.dataArray = new Uint8Array(this.analyser.frequencyBinCount)
+    } catch (error) {
+      console.error("Failed to initialize audio context:", error)
+      this.emit("audio_error", { error: "Failed to initialize audio context" })
+    }
+  }
 
-      this.recognition.onstart = () => {
-        this.emit("recognition_start", {})
+  private async enumerateAudioDevices() {
+    try {
+      const devices = await navigator.mediaDevices.enumerateDevices()
+      this.availableDevices = devices
+        .filter((device) => device.kind === "audioinput")
+        .map((device) => ({
+          deviceId: device.deviceId,
+          label: device.label || `Microphone ${device.deviceId.slice(0, 8)}`,
+          kind: device.kind,
+        }))
+
+      this.emit("devices_updated", this.availableDevices)
+    } catch (error) {
+      console.error("Failed to enumerate audio devices:", error)
+      this.emit("audio_error", { error: "Failed to enumerate audio devices" })
+    }
+  }
+
+  private async initializeMicrophone() {
+    try {
+      if (this.stream) {
+        this.stream.getTracks().forEach((track) => track.stop())
       }
 
-      this.recognition.onresult = (event: SpeechRecognitionEvent) => {
-        const results = Array.from(event.results)
-        const transcript = results
-          .map((result) => result[0].transcript)
-          .join("")
-          .toUpperCase()
+      const constraints: MediaStreamConstraints = {
+        audio: this.config.selectedMicrophoneId ? { deviceId: { exact: this.config.selectedMicrophoneId } } : true,
+      }
 
-        // Check for wake word
-        if (transcript.includes(this.config.wakeWord)) {
-          this.emit("wake_word_detected", {
-            transcript,
-            confidence: results[results.length - 1][0].confidence,
-          })
+      this.stream = await navigator.mediaDevices.getUserMedia(constraints)
 
-          // Extract command after wake word
-          const commandStart = transcript.indexOf(this.config.wakeWord) + this.config.wakeWord.length
-          const command = transcript.slice(commandStart).trim()
+      if (this.audioContext && this.analyser) {
+        this.microphone = this.audioContext.createMediaStreamSource(this.stream)
+        this.microphone.connect(this.analyser)
+        this.startAudioAnalysis()
+        this.emit("microphone_initialized", { deviceId: this.config.selectedMicrophoneId })
+      }
+    } catch (error) {
+      console.error("Failed to initialize microphone:", error)
+      this.emit("audio_error", { error: "Microphone access denied or failed" })
+    }
+  }
 
-          if (command) {
-            this.processCommand(command, results[results.length - 1][0].confidence)
+  private startAudioAnalysis() {
+    if (!this.analyser || !this.dataArray) return
+
+    const analyze = () => {
+      if (!this.analyser || !this.dataArray) return
+
+      this.analyser.getByteFrequencyData(this.dataArray)
+
+      // Calculate average amplitude
+      const average = this.dataArray.reduce((sum, value) => sum + value, 0) / this.dataArray.length
+      const normalizedAmplitude = average / 255
+
+      // Calculate frequency distribution for more detailed waveform
+      const lowFreq = this.dataArray.slice(0, 10).reduce((sum, value) => sum + value, 0) / 10 / 255
+      const midFreq = this.dataArray.slice(10, 50).reduce((sum, value) => sum + value, 0) / 40 / 255
+      const highFreq = this.dataArray.slice(50, 100).reduce((sum, value) => sum + value, 0) / 50 / 255
+
+      this.emit("audio_data", {
+        amplitude: normalizedAmplitude,
+        frequencies: { low: lowFreq, mid: midFreq, high: highFreq },
+        rawData: Array.from(this.dataArray),
+      })
+
+      this.animationFrame = requestAnimationFrame(analyze)
+    }
+
+    analyze()
+  }
+
+  private stopAudioAnalysis() {
+    if (this.animationFrame) {
+      cancelAnimationFrame(this.animationFrame)
+      this.animationFrame = null
+    }
+  }
+
+  private setupRecognition() {
+    if (!this.recognition) return
+
+    this.recognition.continuous = true
+    this.recognition.interimResults = false
+    this.recognition.lang = "en-US"
+
+    this.recognition.onstart = () => {
+      this.emit("recognition_start", {})
+    }
+
+    this.recognition.onresult = (event: SpeechRecognitionEvent) => {
+      const transcript = event.results[event.results.length - 1][0].transcript.toLowerCase().trim()
+      this.processCommand(transcript)
+    }
+
+    this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      console.error("Speech recognition error:", event.error)
+      this.emit("recognition_error", { error: event.error })
+    }
+
+    this.recognition.onend = () => {
+      if (this.isListening && this.config.enableContinuousListening) {
+        // Restart recognition for continuous listening
+        setTimeout(() => {
+          if (this.recognition && this.isListening) {
+            this.recognition.start()
           }
-        }
-      }
-
-      this.recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-        this.emit("recognition_error", { error: event.error })
-      }
-
-      this.recognition.onend = () => {
-        if (this.isListening && this.config.enableContinuousListening) {
-          // Restart recognition for continuous listening
-          setTimeout(() => {
-            this.recognition?.start()
-          }, 100)
-        }
+        }, 100)
       }
     }
   }
@@ -105,42 +215,46 @@ export class VoiceService {
     }
   }
 
-  private processCommand(command: string, confidence: number) {
-    const commandType = this.classifyCommand(command)
-    const voiceCommand: VoiceCommand = {
-      id: `cmd-${Date.now()}`,
-      timestamp: new Date().toISOString(),
-      wakeWord: this.config.wakeWord,
-      command,
-      confidence,
-      type: commandType,
-      status: "processing",
+  private processCommand(transcript: string) {
+    const matchedCommand = this.commands.find((cmd) => transcript.includes(cmd.keyword.toLowerCase()))
+
+    if (matchedCommand) {
+      matchedCommand.action()
+    } else {
+      const commandType = this.classifyCommand(transcript)
+      const voiceCommand: VoiceCommand = {
+        id: `cmd-${Date.now()}`,
+        timestamp: new Date().toISOString(),
+        wakeWord: this.config.wakeWord,
+        command: transcript,
+        confidence: 1.0,
+        type: commandType,
+        status: "processing",
+      }
+
+      this.emit("command_recognized", voiceCommand)
+      this.executeCommand(voiceCommand)
     }
-
-    this.emit("command_recognized", voiceCommand)
-
-    // Process command based on type
-    this.executeCommand(voiceCommand)
   }
 
   private classifyCommand(command: string): CommandType {
-    const navigationKeywords = ["SHOW", "OPEN", "GO TO", "NAVIGATE", "DISPLAY"]
-    const systemKeywords = ["RESTART", "SHUTDOWN", "REBOOT", "RESET", "POWER"]
-    const queryKeywords = ["STATUS", "WHAT", "HOW", "WHEN", "WHERE", "REPORT"]
-    const actionKeywords = ["EXECUTE", "RUN", "START", "STOP", "ACTIVATE", "DEACTIVATE"]
+    const navigationKeywords = ["show", "open", "go to", "navigate", "display"]
+    const systemKeywords = ["restart", "shutdown", "reboot", "reset", "power"]
+    const queryKeywords = ["status", "what", "how", "when", "where", "report"]
+    const actionKeywords = ["execute", "run", "start", "stop", "activate", "deactivate"]
 
     const upperCommand = command.toUpperCase()
 
-    if (navigationKeywords.some((keyword) => upperCommand.includes(keyword))) {
+    if (navigationKeywords.some((keyword) => upperCommand.includes(keyword.toUpperCase()))) {
       return "navigation"
     }
-    if (systemKeywords.some((keyword) => upperCommand.includes(keyword))) {
+    if (systemKeywords.some((keyword) => upperCommand.includes(keyword.toUpperCase()))) {
       return "system"
     }
-    if (queryKeywords.some((keyword) => upperCommand.includes(keyword))) {
+    if (queryKeywords.some((keyword) => upperCommand.includes(keyword.toUpperCase()))) {
       return "query"
     }
-    if (actionKeywords.some((keyword) => upperCommand.includes(keyword))) {
+    if (actionKeywords.some((keyword) => upperCommand.includes(keyword.toUpperCase()))) {
       return "action"
     }
 
@@ -208,27 +322,31 @@ export class VoiceService {
       window.dispatchEvent(new CustomEvent("navigate_to", { detail: "signals" }))
       return "Navigating to Signals Panel"
     }
+    if (upperCommand.includes("SETTINGS")) {
+      window.dispatchEvent(new CustomEvent("navigate_to", { detail: "settings" }))
+      return "Navigating to Settings"
+    }
 
     return "Navigation target not recognized"
   }
 
   private async handleSystemCommand(command: string): Promise<string> {
-    // Placeholder for system commands
     return "System command acknowledged"
   }
 
   private async handleQueryCommand(command: string): Promise<string> {
-    // Placeholder for query commands
     return "Query processed"
   }
 
   private async handleActionCommand(command: string): Promise<string> {
-    // Placeholder for action commands
     return "Action executed"
   }
 
   public speak(text: string) {
     if (this.synthesis) {
+      // Stop any current speech
+      this.synthesis.cancel()
+
       const utterance = new SpeechSynthesisUtterance(text)
       utterance.rate = 0.9
       utterance.pitch = 1.0
@@ -236,26 +354,82 @@ export class VoiceService {
 
       this.emit("speech_start", { text })
 
+      utterance.onstart = () => {
+        this.emit("speech_started", { text })
+      }
+
       utterance.onend = () => {
         this.emit("speech_end", { text })
+      }
+
+      utterance.onerror = (event) => {
+        this.emit("speech_error", { error: event.error })
       }
 
       this.synthesis.speak(utterance)
     }
   }
 
-  public startListening() {
-    if (this.recognition && !this.isListening) {
+  public async startListening() {
+    if (!this.isListening) {
       this.isListening = true
-      this.recognition.start()
+
+      // Initialize microphone first
+      await this.initializeMicrophone()
+
+      // Start speech recognition
+      if (this.recognition) {
+        try {
+          this.recognition.start()
+        } catch (error) {
+          console.error("Failed to start speech recognition:", error)
+          this.emit("recognition_error", { error: "Failed to start speech recognition" })
+        }
+      }
     }
   }
 
   public stopListening() {
-    if (this.recognition && this.isListening) {
+    if (this.isListening) {
       this.isListening = false
-      this.recognition.stop()
+
+      // Stop speech recognition
+      if (this.recognition) {
+        this.recognition.stop()
+      }
+
+      // Stop audio analysis
+      this.stopAudioAnalysis()
+
+      // Stop microphone stream
+      if (this.stream) {
+        this.stream.getTracks().forEach((track) => track.stop())
+        this.stream = null
+      }
+
+      if (this.microphone) {
+        this.microphone.disconnect()
+        this.microphone = null
+      }
     }
+  }
+
+  public async selectMicrophone(deviceId: string) {
+    this.config.selectedMicrophoneId = deviceId
+
+    if (this.isListening) {
+      // Restart with new microphone
+      this.stopListening()
+      await this.startListening()
+    }
+  }
+
+  public getAvailableDevices(): AudioDevice[] {
+    return [...this.availableDevices]
+  }
+
+  public async refreshDevices() {
+    await this.enumerateAudioDevices()
   }
 
   public on(event: string, callback: Function) {
@@ -288,5 +462,35 @@ export class VoiceService {
 
   public updateConfig(newConfig: Partial<VoiceConfig>) {
     this.config = { ...this.config, ...newConfig }
+
+    // Update speech recognition language if changed
+    if (newConfig.language && this.recognition) {
+      this.recognition.lang = newConfig.language
+    }
+  }
+
+  public cleanup() {
+    this.stopListening()
+    if (this.audioContext && this.audioContext.state !== "closed") {
+      this.audioContext.close()
+    }
+  }
+
+  public addCommand(command: VoiceCommand): void {
+    this.commands.push(command)
+  }
+
+  public removeCommand(keyword: string): void {
+    this.commands = this.commands.filter((cmd) => cmd.keyword !== keyword)
+  }
+
+  public isActive(): boolean {
+    return this.isListening
+  }
+
+  public getCommands(): VoiceCommand[] {
+    return this.commands
   }
 }
+
+export const voiceService = new VoiceService()

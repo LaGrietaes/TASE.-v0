@@ -1,49 +1,53 @@
 "use client"
 
-import { LineChart, Line, XAxis, YAxis, ResponsiveContainer } from "recharts"
-import { useMissionData } from "@/hooks/use-mission-data"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
+import { TrendingUp } from "lucide-react"
+
+interface ChartData {
+  time: string
+  systems: number
+  missions: number
+  alerts: number
+}
 
 export function OperationalChart() {
-  const { missionData } = useMissionData()
-  const { metrics } = missionData
-
-  // Transform metrics data for the chart
-  const chartData = metrics.slice(-24).map((metric) => ({
-    time: new Date(metric.timestamp).toLocaleTimeString("en-US", {
-      hour12: false,
-      hour: "2-digit",
-      minute: "2-digit",
-    }),
-    value: Math.round(metric.value),
-  }))
+  const data: ChartData[] = [
+    { time: "00:00", systems: 95, missions: 4, alerts: 2 },
+    { time: "04:00", systems: 92, missions: 4, alerts: 3 },
+    { time: "08:00", systems: 88, missions: 6, alerts: 1 },
+    { time: "12:00", systems: 91, missions: 5, alerts: 4 },
+    { time: "16:00", systems: 87, missions: 4, alerts: 2 },
+    { time: "20:00", systems: 89, missions: 3, alerts: 1 },
+  ]
 
   return (
-    <div className="h-32">
-      <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={chartData}>
-          <XAxis
-            dataKey="time"
-            axisLine={false}
-            tickLine={false}
-            tick={{ fontSize: 10, fill: "#6B7280" }}
-            interval="preserveStartEnd"
-          />
-          <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: "#6B7280" }} domain={[0, 100]} />
-          <Line
-            type="monotone"
-            dataKey="value"
-            stroke="#CD2027"
-            strokeWidth={2}
-            dot={{ fill: "#CD2027", strokeWidth: 0, r: 2 }}
-            connectNulls={false}
-          />
-        </LineChart>
-      </ResponsiveContainer>
-      {chartData.length === 0 && (
-        <div className="flex items-center justify-center h-full text-xs font-mono text-muted-foreground">
-          NO METRICS DATA
-        </div>
-      )}
-    </div>
+    <Card className="bg-card/50 border-border">
+      <CardHeader className="pb-3">
+        <CardTitle className="text-sm font-mono flex items-center gap-2">
+          <TrendingUp className="h-4 w-4" />
+          OPERATIONAL METRICS
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <ResponsiveContainer width="100%" height={200}>
+          <LineChart data={data}>
+            <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+            <XAxis dataKey="time" stroke="hsl(var(--muted-foreground))" fontSize={10} />
+            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={10} />
+            <Tooltip
+              contentStyle={{
+                backgroundColor: "hsl(var(--card))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "6px",
+              }}
+            />
+            <Line type="monotone" dataKey="systems" stroke="#22c55e" strokeWidth={2} name="System Health %" />
+            <Line type="monotone" dataKey="missions" stroke="#3b82f6" strokeWidth={2} name="Active Missions" />
+            <Line type="monotone" dataKey="alerts" stroke="#ef4444" strokeWidth={2} name="Active Alerts" />
+          </LineChart>
+        </ResponsiveContainer>
+      </CardContent>
+    </Card>
   )
 }

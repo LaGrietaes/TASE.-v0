@@ -1,380 +1,193 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { CalendarIcon, Clock, User, Plus, ChevronLeft, ChevronRight, Filter, Search } from "lucide-react"
-import { useMissionData } from "@/hooks/use-mission-data"
+import { Progress } from "@/components/ui/progress"
+import { Shield, MapPin, Clock, Users, CheckCircle, Play, Pause } from "lucide-react"
 
-export function MissionBoard() {
-  const { missionData } = useMissionData()
-  const { todos } = missionData
-  const [currentDate, setCurrentDate] = useState(new Date())
-  const [searchTerm, setSearchTerm] = useState("")
-  const [filterCategory, setFilterCategory] = useState("ALL")
-  const [filterStatus, setFilterStatus] = useState("ALL")
+interface MissionBoardProps {
+  compact?: boolean
+}
+
+export function MissionBoard({ compact = false }: MissionBoardProps) {
+  const [missions, setMissions] = useState([
+    {
+      id: "OP-001",
+      name: "OPERATION NIGHTFALL",
+      status: "ACTIVE",
+      priority: "HIGH",
+      progress: 75,
+      location: "SECTOR 7-G",
+      team: "ALPHA",
+      eta: "02:45:00",
+      objectives: 4,
+      completed: 3,
+    },
+    {
+      id: "OP-002",
+      name: "OPERATION STEEL RAIN",
+      status: "PLANNING",
+      priority: "CRITICAL",
+      progress: 25,
+      location: "SECTOR 12-A",
+      team: "BRAVO",
+      eta: "06:30:00",
+      objectives: 6,
+      completed: 1,
+    },
+    {
+      id: "OP-003",
+      name: "OPERATION GHOST PROTOCOL",
+      status: "ACTIVE",
+      priority: "MEDIUM",
+      progress: 90,
+      location: "SECTOR 3-C",
+      team: "CHARLIE",
+      eta: "00:30:00",
+      objectives: 3,
+      completed: 3,
+    },
+    {
+      id: "OP-004",
+      name: "OPERATION DARK HORSE",
+      status: "STANDBY",
+      priority: "LOW",
+      progress: 0,
+      location: "SECTOR 15-B",
+      team: "DELTA",
+      eta: "12:00:00",
+      objectives: 5,
+      completed: 0,
+    },
+  ])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMissions((prev) =>
+        prev.map((mission) => ({
+          ...mission,
+          progress:
+            mission.status === "ACTIVE" ? Math.min(100, mission.progress + Math.random() * 2) : mission.progress,
+        })),
+      )
+    }, 3000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case "ACTIVE":
+        return "text-green-400 bg-green-400/20 border-green-400/50 status-online"
+      case "PLANNING":
+        return "text-yellow-400 bg-yellow-400/20 border-yellow-400/50"
+      case "STANDBY":
+        return "text-blue-400 bg-blue-400/20 border-blue-400/50"
+      case "COMPLETED":
+        return "text-green-400 bg-green-400/20 border-green-400/50 status-online"
+      default:
+        return "text-gray-400 bg-gray-400/20 border-gray-400/50"
+    }
+  }
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
       case "CRITICAL":
-        return "text-tactical-red border-tactical-red"
+        return "text-red-400 bg-red-400/20 border-red-400/50"
       case "HIGH":
-        return "text-tactical-amber border-tactical-amber"
+        return "text-orange-400 bg-orange-400/20 border-orange-400/50"
       case "MEDIUM":
-        return "text-tactical-blue border-tactical-blue"
+        return "text-yellow-400 bg-yellow-400/20 border-yellow-400/50"
       case "LOW":
-        return "text-tactical-green border-tactical-green"
+        return "text-white bg-white/20 border-white/50"
       default:
-        return "text-muted-foreground border-border"
+        return "text-gray-400 bg-gray-400/20 border-gray-400/50"
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "COMPLETED":
-        return "text-tactical-green"
-      case "IN_PROGRESS":
-        return "text-tactical-amber"
-      case "CANCELLED":
-        return "text-tactical-red"
-      case "PENDING":
-      default:
-        return "text-muted-foreground"
-    }
-  }
-
-  // Calendar functionality
-  const getDaysInMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth() + 1, 0).getDate()
-  }
-
-  const getFirstDayOfMonth = (date: Date) => {
-    return new Date(date.getFullYear(), date.getMonth(), 1).getDay()
-  }
-
-  const navigateMonth = (direction: number) => {
-    setCurrentDate(new Date(currentDate.getFullYear(), currentDate.getMonth() + direction, 1))
-  }
-
-  const getTodosForDate = (day: number) => {
-    const dateStr = new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString()
-    return todos.filter((todo) => new Date(todo.dueDate).toDateString() === dateStr)
-  }
-
-  const renderCalendar = () => {
-    const daysInMonth = getDaysInMonth(currentDate)
-    const firstDay = getFirstDayOfMonth(currentDate)
-    const days = []
-
-    // Empty cells for days before the first day of the month
-    for (let i = 0; i < firstDay; i++) {
-      days.push(<div key={`empty-${i}`} className="h-20 border border-border bg-muted/20"></div>)
-    }
-
-    // Days of the month
-    for (let day = 1; day <= daysInMonth; day++) {
-      const dayTodos = getTodosForDate(day)
-      const isToday =
-        new Date().toDateString() === new Date(currentDate.getFullYear(), currentDate.getMonth(), day).toDateString()
-
-      days.push(
-        <div key={day} className={`h-20 border border-border bg-card p-1 ${isToday ? "bg-accent/20" : ""}`}>
-          <div className={`text-xs font-mono mb-1 ${isToday ? "text-tactical-red font-bold" : ""}`}>{day}</div>
-          <div className="space-y-1">
-            {dayTodos.slice(0, 2).map((todo) => (
-              <div
-                key={todo.id}
-                className={`text-xs px-1 py-0.5 border-l-2 ${getPriorityColor(todo.priority)} bg-background/50 truncate`}
-              >
-                {todo.title}
-              </div>
-            ))}
-            {dayTodos.length > 2 && <div className="text-xs text-muted-foreground">+{dayTodos.length - 2} more</div>}
-          </div>
-        </div>,
-      )
-    }
-
-    return days
-  }
-
-  // Filter todos
-  const filteredTodos = todos.filter((todo) => {
-    const matchesSearch =
-      todo.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      todo.description.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesCategory = filterCategory === "ALL" || todo.category === filterCategory
-    const matchesStatus = filterStatus === "ALL" || todo.status === filterStatus
-    return matchesSearch && matchesCategory && matchesStatus
-  })
-
-  const todaysTodos = filteredTodos.filter((todo) => {
-    const dueDate = new Date(todo.dueDate)
-    const today = new Date()
-    return dueDate.toDateString() === today.toDateString()
-  })
-
-  const upcomingTodos = filteredTodos.filter((todo) => {
-    const dueDate = new Date(todo.dueDate)
-    const today = new Date()
-    const nextWeek = new Date(today)
-    nextWeek.setDate(nextWeek.getDate() + 7)
-    return dueDate > today && dueDate <= nextWeek
-  })
+  const displayMissions = compact ? missions.slice(0, 2) : missions
 
   return (
-    <div className="space-y-4">
-      {/* Compact Header with Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="border-border bg-card">
-          <CardContent className="p-3">
-            <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">TODAY'S TASKS</div>
-            <div className="text-xl font-mono text-tactical-amber">{todaysTodos.length}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-border bg-card">
-          <CardContent className="p-3">
-            <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">THIS WEEK</div>
-            <div className="text-xl font-mono text-tactical-blue">{upcomingTodos.length}</div>
-          </CardContent>
-        </Card>
-        <Card className="border-border bg-card">
-          <CardContent className="p-3">
-            <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">CRITICAL</div>
-            <div className="text-xl font-mono text-tactical-red">
-              {filteredTodos.filter((t) => t.priority === "CRITICAL").length}
-            </div>
-          </CardContent>
-        </Card>
-        <Card className="border-border bg-card">
-          <CardContent className="p-3">
-            <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">COMPLETED</div>
-            <div className="text-xl font-mono text-tactical-green">
-              {filteredTodos.filter((t) => t.status === "COMPLETED").length}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
+    <Card className="bg-slate-900/50 border-white/30 backdrop-blur">
+      <CardHeader>
+        <CardTitle className="text-white font-mono flex items-center gap-2">
+          <Shield className="w-5 h-5" />
+          MISSION BOARD
+          <Badge className="bg-blue-400/20 text-blue-400 border-blue-400/50 ml-auto">
+            {missions.filter((m) => m.status === "ACTIVE").length} ACTIVE
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {displayMissions.map((mission) => (
+          <Card key={mission.id} className="bg-slate-800/50 border-white/20">
+            <CardContent className="p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div>
+                  <div className="flex items-center gap-2 mb-1">
+                    <h3 className="font-mono font-bold text-white">{mission.id}</h3>
+                    <Badge className={`text-xs ${getStatusColor(mission.status)}`}>{mission.status}</Badge>
+                    <Badge className={`text-xs ${getPriorityColor(mission.priority)}`}>{mission.priority}</Badge>
+                  </div>
+                  <p className="text-sm text-white/80 font-mono">{mission.name}</p>
+                </div>
+                <div className="flex gap-1">
+                  {mission.status === "ACTIVE" ? (
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-white hover:bg-white/20">
+                      <Pause className="w-3 h-3" />
+                    </Button>
+                  ) : (
+                    <Button size="sm" variant="ghost" className="h-6 w-6 p-0 text-white hover:bg-white/20">
+                      <Play className="w-3 h-3" />
+                    </Button>
+                  )}
+                </div>
+              </div>
 
-      {/* Filters */}
-      <Card className="border-border bg-card">
-        <CardContent className="p-3">
-          <div className="flex items-center gap-4">
-            <div className="flex items-center gap-2 flex-1">
-              <Search className="h-3 w-3 text-muted-foreground" />
-              <Input
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="tactical-button h-6 text-xs flex-1"
-                placeholder="Search tasks..."
-              />
-            </div>
-            <div className="flex items-center gap-2">
-              <Filter className="h-3 w-3 text-muted-foreground" />
-              <Select value={filterCategory} onValueChange={setFilterCategory}>
-                <SelectTrigger className="tactical-button h-6 w-32 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">ALL CATEGORIES</SelectItem>
-                  <SelectItem value="MISSION">MISSION</SelectItem>
-                  <SelectItem value="MAINTENANCE">MAINTENANCE</SelectItem>
-                  <SelectItem value="SECURITY">SECURITY</SelectItem>
-                  <SelectItem value="INTEL">INTEL</SelectItem>
-                </SelectContent>
-              </Select>
-              <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="tactical-button h-6 w-32 text-xs">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">ALL STATUS</SelectItem>
-                  <SelectItem value="PENDING">PENDING</SelectItem>
-                  <SelectItem value="IN_PROGRESS">IN PROGRESS</SelectItem>
-                  <SelectItem value="COMPLETED">COMPLETED</SelectItem>
-                  <SelectItem value="CANCELLED">CANCELLED</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-            <Button
-              className="tactical-button h-6 px-2"
-              onClick={() => window.dispatchEvent(new CustomEvent("openQuickAdd"))}
-            >
-              <Plus className="h-3 w-3 mr-1" />
-              ADD
+              <div className="grid grid-cols-2 gap-4 text-xs text-white/70 mb-3">
+                <div className="flex items-center gap-1">
+                  <MapPin className="w-3 h-3" />
+                  <span>{mission.location}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Users className="w-3 h-3" />
+                  <span>TEAM {mission.team}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" />
+                  <span>ETA: {mission.eta}</span>
+                </div>
+                <div className="flex items-center gap-1">
+                  <CheckCircle className="w-3 h-3" />
+                  <span>
+                    {mission.completed}/{mission.objectives} OBJ
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex justify-between text-xs">
+                  <span className="text-white/70">PROGRESS</span>
+                  <span className="text-white">{mission.progress.toFixed(0)}%</span>
+                </div>
+                <Progress value={mission.progress} className="h-2 bg-slate-700" />
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+
+        {!compact && (
+          <div className="flex gap-2 pt-2">
+            <Button className="bg-white/20 text-white border border-white/50 hover:bg-white/30 font-mono text-xs">
+              NEW MISSION
+            </Button>
+            <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 font-mono text-xs">
+              VIEW ALL
             </Button>
           </div>
-        </CardContent>
-      </Card>
-
-      {/* Main Calendar and Todo Layout - Side by Side */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 min-h-[600px]">
-        {/* Calendar View - Left Side */}
-        <Card className="border-border bg-card">
-          <CardHeader className="border-b border-border pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-xs font-mono uppercase tracking-wider">
-                {currentDate.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase()}
-              </CardTitle>
-              <div className="flex items-center gap-2">
-                <Button className="tactical-button h-6 w-6 p-0" onClick={() => navigateMonth(-1)}>
-                  <ChevronLeft className="h-3 w-3" />
-                </Button>
-                <Button className="tactical-button h-6 px-2" onClick={() => setCurrentDate(new Date())}>
-                  TODAY
-                </Button>
-                <Button className="tactical-button h-6 w-6 p-0" onClick={() => navigateMonth(1)}>
-                  <ChevronRight className="h-3 w-3" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent className="p-4">
-            <div className="grid grid-cols-7 gap-1 mb-2">
-              {["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"].map((day) => (
-                <div key={day} className="text-xs font-mono text-center py-2 text-muted-foreground">
-                  {day}
-                </div>
-              ))}
-            </div>
-            <div className="grid grid-cols-7 gap-1">{renderCalendar()}</div>
-          </CardContent>
-        </Card>
-
-        {/* Todo Lists - Right Side */}
-        <div className="space-y-4">
-          {/* Today's Tasks */}
-          <Card className="border-border bg-card">
-            <CardHeader className="border-b border-border pb-2">
-              <CardTitle className="text-xs font-mono uppercase tracking-wider">
-                TODAY'S TASKS ({todaysTodos.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="max-h-64 overflow-auto">
-                {todaysTodos.length > 0 ? (
-                  <div className="space-y-2 p-4">
-                    {todaysTodos.map((todo) => (
-                      <div key={todo.id} className={`border-l-2 pl-3 py-2 ${getPriorityColor(todo.priority)}`}>
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <div className="text-xs font-mono font-semibold">{todo.title}</div>
-                            <div className="text-xs text-muted-foreground">{todo.description}</div>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <User className="h-3 w-3" />
-                                {todo.assignee}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <Clock className="h-3 w-3" />
-                                {new Date(todo.dueDate).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                              </div>
-                            </div>
-                          </div>
-                          <div className={`text-xs font-mono ${getStatusColor(todo.status)}`}>{todo.status}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-4 text-center text-muted-foreground text-xs font-mono">
-                    NO TASKS SCHEDULED FOR TODAY
-                  </div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Upcoming Tasks */}
-          <Card className="border-border bg-card">
-            <CardHeader className="border-b border-border pb-2">
-              <CardTitle className="text-xs font-mono uppercase tracking-wider">
-                UPCOMING TASKS ({upcomingTodos.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="p-0">
-              <div className="max-h-64 overflow-auto">
-                {upcomingTodos.length > 0 ? (
-                  <div className="space-y-2 p-4">
-                    {upcomingTodos.slice(0, 10).map((todo) => (
-                      <div key={todo.id} className={`border-l-2 pl-3 py-2 ${getPriorityColor(todo.priority)}`}>
-                        <div className="flex items-start justify-between">
-                          <div className="space-y-1">
-                            <div className="text-xs font-mono font-semibold">{todo.title}</div>
-                            <div className="text-xs text-muted-foreground">{todo.description}</div>
-                            <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                              <div className="flex items-center gap-1">
-                                <User className="h-3 w-3" />
-                                {todo.assignee}
-                              </div>
-                              <div className="flex items-center gap-1">
-                                <CalendarIcon className="h-3 w-3" />
-                                {new Date(todo.dueDate).toLocaleDateString()}
-                              </div>
-                            </div>
-                          </div>
-                          <div className={`text-xs font-mono ${getStatusColor(todo.status)}`}>{todo.status}</div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="p-4 text-center text-muted-foreground text-xs font-mono">NO UPCOMING TASKS</div>
-                )}
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      {/* Task Categories Summary - Bottom Section */}
-      <Card className="border-border bg-card">
-        <CardHeader className="border-b border-border pb-2">
-          <CardTitle className="text-xs font-mono uppercase tracking-wider">TASK CATEGORIES OVERVIEW</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            {["MISSION", "MAINTENANCE", "SECURITY", "INTEL"].map((category) => {
-              const categoryTodos = filteredTodos.filter((t) => t.category === category)
-              const completedCount = categoryTodos.filter((t) => t.status === "COMPLETED").length
-              const pendingCount = categoryTodos.filter((t) => t.status === "PENDING").length
-              const inProgressCount = categoryTodos.filter((t) => t.status === "IN_PROGRESS").length
-
-              return (
-                <div key={category} className="border border-border p-3 space-y-2">
-                  <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground border-b border-border pb-1">
-                    {category} ({categoryTodos.length})
-                  </div>
-                  <div className="space-y-1">
-                    <div className="flex justify-between text-xs font-mono">
-                      <span className="text-tactical-green">COMPLETED</span>
-                      <span className="text-tactical-green">{completedCount}</span>
-                    </div>
-                    <div className="flex justify-between text-xs font-mono">
-                      <span className="text-tactical-amber">IN PROGRESS</span>
-                      <span className="text-tactical-amber">{inProgressCount}</span>
-                    </div>
-                    <div className="flex justify-between text-xs font-mono">
-                      <span className="text-muted-foreground">PENDING</span>
-                      <span className="text-muted-foreground">{pendingCount}</span>
-                    </div>
-                  </div>
-                  <div className="w-full bg-secondary h-2">
-                    <div
-                      className="h-2 bg-tactical-green"
-                      style={{
-                        width: `${categoryTodos.length > 0 ? (completedCount / categoryTodos.length) * 100 : 0}%`,
-                      }}
-                    />
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }

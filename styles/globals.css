@@ -88,3 +88,24 @@
     @apply bg-background text-foreground;
   }
 }
+
+/* Global text color overrides - change green text to white, except for ONLINE status */
+.text-green-400:not(.status-online) {
+  @apply text-white;
+}
+
+.text-green-400\/70:not(.status-online) {
+  @apply text-white/70;
+}
+
+.text-green-400\/80:not(.status-online) {
+  @apply text-white/80;
+}
+
+.text-green-400\/60:not(.status-online) {
+  @apply text-white/60;
+}
+
+.text-green-400\/50:not(.status-online) {
+  @apply text-white/50;
+}

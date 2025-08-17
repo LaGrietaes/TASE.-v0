@@ -1,193 +1,237 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Shield, Clock, User, AlertTriangle, CheckCircle, XCircle } from "lucide-react"
-import { useMissionData } from "@/hooks/use-mission-data"
+import { Switch } from "@/components/ui/switch"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog"
+import { AlertTriangle, Shield, Power, Lock, Unlock, Zap, Radio, Eye } from "lucide-react"
 
 export function OverridesPanel() {
-  const { missionData } = useMissionData()
-  const { overrides } = missionData
+  const [overrides, setOverrides] = useState([
+    {
+      id: "LOCKDOWN",
+      name: "FACILITY LOCKDOWN",
+      description: "Secure all access points and restrict movement",
+      active: false,
+      critical: true,
+      requiresAuth: true,
+    },
+    {
+      id: "COMMS_BLACKOUT",
+      name: "COMMUNICATIONS BLACKOUT",
+      description: "Disable all external communications",
+      active: false,
+      critical: true,
+      requiresAuth: true,
+    },
+    {
+      id: "POWER_CONSERVATION",
+      name: "POWER CONSERVATION MODE",
+      description: "Reduce power consumption to essential systems only",
+      active: true,
+      critical: false,
+      requiresAuth: false,
+    },
+    {
+      id: "STEALTH_MODE",
+      name: "STEALTH MODE",
+      description: "Minimize electromagnetic signatures",
+      active: false,
+      critical: false,
+      requiresAuth: true,
+    },
+    {
+      id: "EMERGENCY_POWER",
+      name: "EMERGENCY POWER",
+      description: "Switch to backup power systems",
+      active: false,
+      critical: true,
+      requiresAuth: true,
+    },
+    {
+      id: "SURVEILLANCE_OVERRIDE",
+      name: "SURVEILLANCE OVERRIDE",
+      description: "Override privacy protocols for enhanced monitoring",
+      active: false,
+      critical: false,
+      requiresAuth: true,
+    },
+  ])
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return "text-tactical-green border-tactical-green bg-tactical-green/10"
-      case "EXPIRED":
-        return "text-tactical-amber border-tactical-amber bg-tactical-amber/10"
-      case "REVOKED":
-        return "text-tactical-red border-tactical-red bg-tactical-red/10"
-      default:
-        return "text-muted-foreground border-border"
-    }
+  const toggleOverride = (id: string) => {
+    setOverrides((prev) =>
+      prev.map((override) => (override.id === id ? { ...override, active: !override.active } : override)),
+    )
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case "ACTIVE":
-        return <CheckCircle className="h-3 w-3" />
-      case "EXPIRED":
-        return <Clock className="h-3 w-3" />
-      case "REVOKED":
-        return <XCircle className="h-3 w-3" />
+  const getOverrideIcon = (id: string) => {
+    switch (id) {
+      case "LOCKDOWN":
+        return Shield
+      case "COMMS_BLACKOUT":
+        return Radio
+      case "POWER_CONSERVATION":
+        return Power
+      case "STEALTH_MODE":
+        return Eye
+      case "EMERGENCY_POWER":
+        return Zap
+      case "SURVEILLANCE_OVERRIDE":
+        return Eye
       default:
-        return <AlertTriangle className="h-3 w-3" />
+        return AlertTriangle
     }
   }
-
-  const activeOverrides = overrides.filter((o) => o.status === "ACTIVE")
-  const expiredOverrides = overrides.filter((o) => o.status === "EXPIRED")
 
   return (
-    <div className="space-y-4">
-      {/* Override Status Overview */}
-      <Card className="border-border bg-card">
-        <CardHeader className="border-b border-border pb-2">
-          <CardTitle className="text-xs font-mono uppercase tracking-wider flex items-center gap-2">
-            <Shield className="h-3 w-3" />
-            SYSTEM OVERRIDES STATUS
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">ACTIVE</div>
-              <div className="text-2xl font-mono text-tactical-green">{activeOverrides.length}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">EXPIRED</div>
-              <div className="text-2xl font-mono text-tactical-amber">{expiredOverrides.length}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">REVOKED</div>
-              <div className="text-2xl font-mono text-tactical-red">
-                {overrides.filter((o) => o.status === "REVOKED").length}
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">TOTAL</div>
-              <div className="text-2xl font-mono text-tactical-blue">{overrides.length}</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Active Overrides */}
-        <Card className="border-border bg-card">
-          <CardHeader className="border-b border-border pb-2">
-            <CardTitle className="text-xs font-mono uppercase tracking-wider">ACTIVE OVERRIDES</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-96 overflow-auto">
-              {activeOverrides.length > 0 ? (
-                <div className="space-y-2 p-4">
-                  {activeOverrides.map((override) => (
-                    <div key={override.id} className={`border-l-2 pl-3 py-2 ${getStatusColor(override.status)}`}>
-                      <div className="space-y-1">
-                        <div className="flex items-center justify-between">
-                          <div className="text-xs font-mono font-semibold">{override.system}</div>
-                          <div className="flex items-center gap-1">
-                            {getStatusIcon(override.status)}
-                            <span className="text-xs font-mono">{override.status}</span>
-                          </div>
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {override.parameter}: {override.originalValue} → {override.overrideValue}
-                        </div>
-                        <div className="text-xs text-muted-foreground">{override.reason}</div>
-                        <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                          <div className="flex items-center gap-1">
-                            <User className="h-3 w-3" />
-                            {override.authorizedBy}
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Clock className="h-3 w-3" />
-                            Expires: {new Date(override.expiresAt).toLocaleString()}
-                          </div>
-                        </div>
-                        <div className="flex gap-2 mt-2">
-                          <Button className="tactical-button h-6 px-2 text-xs">EXTEND</Button>
-                          <Button className="tactical-button h-6 px-2 text-xs bg-tactical-red">REVOKE</Button>
-                        </div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
-                <div className="p-4 text-center text-muted-foreground text-xs font-mono">NO ACTIVE OVERRIDES</div>
-              )}
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Override History */}
-        <Card className="border-border bg-card">
-          <CardHeader className="border-b border-border pb-2">
-            <CardTitle className="text-xs font-mono uppercase tracking-wider">OVERRIDE HISTORY</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-96 overflow-auto">
-              <div className="space-y-2 p-4">
-                {overrides.slice(0, 10).map((override) => (
-                  <div key={override.id} className={`border-l-2 pl-3 py-2 ${getStatusColor(override.status)}`}>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs font-mono font-semibold">{override.system}</div>
-                        <div className="flex items-center gap-1">
-                          {getStatusIcon(override.status)}
-                          <span className="text-xs font-mono">{override.status}</span>
-                        </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {override.parameter}: {override.originalValue} → {override.overrideValue}
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <User className="h-3 w-3" />
-                          {override.authorizedBy}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          {new Date(override.timestamp).toLocaleString()}
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold font-mono text-green-400">SYSTEM OVERRIDES</h1>
+        <Badge className="bg-red-400/20 text-red-400 border-red-400/50">
+          {overrides.filter((o) => o.active).length} ACTIVE
+        </Badge>
       </div>
 
-      {/* System Override Controls */}
-      <Card className="border-border bg-card">
-        <CardHeader className="border-b border-border pb-2">
-          <CardTitle className="text-xs font-mono uppercase tracking-wider">SYSTEM CONTROLS</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {["RADAR", "COMMS", "NAVIGATION", "WEAPONS", "SENSORS", "POWER"].map((system) => {
-              const systemOverrides = overrides.filter((o) => o.system === system && o.status === "ACTIVE")
-              return (
-                <div key={system} className="border border-border p-3 space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="text-xs font-mono font-semibold">{system}</div>
-                    <div
-                      className={`text-xs font-mono ${systemOverrides.length > 0 ? "text-tactical-amber" : "text-tactical-green"}`}
+      <div className="bg-red-400/10 border border-red-400/30 rounded-lg p-4 mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <AlertTriangle className="w-5 h-5 text-red-400" />
+          <h3 className="font-mono font-bold text-red-400">WARNING</h3>
+        </div>
+        <p className="text-sm text-red-400/80">
+          System overrides can significantly impact operational capabilities. Use with extreme caution and only when
+          authorized.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {overrides.map((override) => {
+          const OverrideIcon = getOverrideIcon(override.id)
+          return (
+            <Card
+              key={override.id}
+              className={`bg-slate-900/50 backdrop-blur ${override.active ? "border-red-400/50" : "border-green-400/30"}`}
+            >
+              <CardHeader>
+                <CardTitle className="text-green-400 font-mono flex items-center gap-2">
+                  <OverrideIcon className="w-5 h-5" />
+                  {override.name}
+                  <div className="ml-auto flex items-center gap-2">
+                    {override.critical && (
+                      <Badge className="bg-red-400/20 text-red-400 border-red-400/50 text-xs">CRITICAL</Badge>
+                    )}
+                    <Badge
+                      className={`text-xs ${override.active ? "bg-red-400/20 text-red-400 border-red-400/50" : "bg-gray-400/20 text-gray-400 border-gray-400/50"}`}
                     >
-                      {systemOverrides.length > 0 ? "OVERRIDDEN" : "NORMAL"}
-                    </div>
+                      {override.active ? "ACTIVE" : "INACTIVE"}
+                    </Badge>
                   </div>
-                  <div className="text-xs text-muted-foreground">{systemOverrides.length} active override(s)</div>
-                  <div className="flex gap-2">
-                    <Button className="tactical-button h-6 px-2 text-xs flex-1">OVERRIDE</Button>
-                    <Button className="tactical-button h-6 px-2 text-xs flex-1">RESET</Button>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <p className="text-sm text-green-400/80">{override.description}</p>
+
+                <div className="flex items-center justify-between pt-2 border-t border-green-400/20">
+                  <div className="flex items-center gap-2">
+                    {override.requiresAuth ? (
+                      <Lock className="w-4 h-4 text-yellow-400" />
+                    ) : (
+                      <Unlock className="w-4 h-4 text-green-400" />
+                    )}
+                    <span className="text-xs text-green-400/70 font-mono">
+                      {override.requiresAuth ? "REQUIRES AUTHORIZATION" : "NO AUTH REQUIRED"}
+                    </span>
                   </div>
+
+                  {override.requiresAuth && override.critical ? (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          size="sm"
+                          className={`font-mono text-xs ${
+                            override.active
+                              ? "bg-red-400/20 text-red-400 border border-red-400/50 hover:bg-red-400/30"
+                              : "bg-yellow-400/20 text-yellow-400 border border-yellow-400/50 hover:bg-yellow-400/30"
+                          }`}
+                        >
+                          {override.active ? "DEACTIVATE" : "ACTIVATE"}
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent className="bg-slate-900 border-red-400/50">
+                        <AlertDialogHeader>
+                          <AlertDialogTitle className="text-red-400 font-mono">
+                            CRITICAL SYSTEM OVERRIDE
+                          </AlertDialogTitle>
+                          <AlertDialogDescription className="text-green-400/80">
+                            You are about to {override.active ? "deactivate" : "activate"} a critical system override:
+                            <strong className="text-green-400"> {override.name}</strong>
+                            <br />
+                            <br />
+                            This action requires command authorization and may have significant operational impact.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel className="bg-slate-800 text-green-400 border-green-400/50">
+                            Cancel
+                          </AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => toggleOverride(override.id)}
+                            className="bg-red-400/20 text-red-400 border border-red-400/50 hover:bg-red-400/30"
+                          >
+                            Confirm Override
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  ) : (
+                    <Switch
+                      checked={override.active}
+                      onCheckedChange={() => toggleOverride(override.id)}
+                      className="data-[state=checked]:bg-red-400"
+                    />
+                  )}
                 </div>
-              )
-            })}
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      <Card className="bg-slate-900/50 border-green-400/30 backdrop-blur">
+        <CardHeader>
+          <CardTitle className="text-green-400 font-mono">OVERRIDE STATUS SUMMARY</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div className="bg-slate-800/50 border border-green-400/20 rounded p-4">
+              <div className="text-2xl font-bold text-green-400 font-mono">
+                {overrides.filter((o) => o.active).length}
+              </div>
+              <div className="text-sm text-green-400/70">ACTIVE OVERRIDES</div>
+            </div>
+            <div className="bg-slate-800/50 border border-red-400/20 rounded p-4">
+              <div className="text-2xl font-bold text-red-400 font-mono">
+                {overrides.filter((o) => o.critical && o.active).length}
+              </div>
+              <div className="text-sm text-green-400/70">CRITICAL ACTIVE</div>
+            </div>
+            <div className="bg-slate-800/50 border border-yellow-400/20 rounded p-4">
+              <div className="text-2xl font-bold text-yellow-400 font-mono">
+                {overrides.filter((o) => o.requiresAuth).length}
+              </div>
+              <div className="text-sm text-green-400/70">REQUIRE AUTH</div>
+            </div>
           </div>
         </CardContent>
       </Card>

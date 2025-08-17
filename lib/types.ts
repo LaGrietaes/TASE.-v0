@@ -1,123 +1,115 @@
-export interface MissionData {
-  assets: Asset[]
-  systemStatus: SystemStatus
-  activities: Activity[]
-  metrics: OperationalMetric[]
-  threats: Threat[]
-  todos: Todo[]
-  communications: Communication[]
-  overrides: Override[]
-  diagnostics: Diagnostic[]
-  systems: SystemModule[]
-  signals: Signal[]
-}
-
-export interface Asset {
-  id: string
-  status: "ACTIVE" | "STANDBY" | "OFFLINE"
-  location: string
-  signal: "STRONG" | "MEDIUM" | "WEAK" | "NONE"
-  coordinates: { lat: number; lng: number }
-  lastUpdate: string
-}
-
-export interface SystemStatus {
-  overall: "OPERATIONAL" | "DEGRADED" | "OFFLINE"
-  connection: "SECURE" | "UNSECURE" | "DISCONNECTED"
-  uptime: number
-  activeAssets: number
-  alerts: number
-  threats: number
-}
-
-export interface Activity {
-  id: string
-  timestamp: string
-  event: string
-  level: "INFO" | "SUCCESS" | "WARNING" | "ERROR" | "CRITICAL"
-  source: string
-}
-
-export interface OperationalMetric {
-  timestamp: string
-  value: number
-  metric: string
-}
-
-export interface Threat {
-  id: string
-  level: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
-  location: string
-  description: string
-  timestamp: string
-}
-
-export interface Todo {
+export interface Task {
   id: string
   title: string
   description: string
-  priority: "LOW" | "MEDIUM" | "HIGH" | "CRITICAL"
-  status: "PENDING" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED"
-  assignee: string
-  dueDate: string
+  status: "Pending" | "In Progress" | "Completed" | "On Hold"
+  priority: "Low" | "Medium" | "High"
+  category: string
+  dueDate?: string
+  assignee?: string
+  tags: string[]
   createdAt: string
-  category: "MISSION" | "MAINTENANCE" | "SECURITY" | "INTEL"
+  updatedAt: string
+  checklist: ChecklistItem[]
+  attachments: Attachment[]
+  links: Link[]
+  socialAccounts: SocialAccount[]
+  coverImage?: string
+  labels: Label[]
+  estimatedHours?: number
+  actualHours?: number
+  comments: Comment[]
 }
 
-export interface Communication {
+export interface ChecklistItem {
   id: string
-  timestamp: string
-  from: string
-  to: string
-  channel: string
-  message: string
-  priority: "LOW" | "MEDIUM" | "HIGH" | "URGENT"
-  status: "SENT" | "RECEIVED" | "ACKNOWLEDGED" | "FAILED"
-  encrypted: boolean
+  text: string
+  completed: boolean
+  createdAt: string
 }
 
-export interface Override {
-  id: string
-  system: string
-  parameter: string
-  originalValue: string
-  overrideValue: string
-  reason: string
-  authorizedBy: string
-  timestamp: string
-  status: "ACTIVE" | "EXPIRED" | "REVOKED"
-  expiresAt: string
-}
-
-export interface Diagnostic {
-  id: string
-  system: string
-  component: string
-  status: "HEALTHY" | "WARNING" | "CRITICAL" | "OFFLINE"
-  lastCheck: string
-  nextCheck: string
-  details: string
-  metrics: Record<string, number>
-}
-
-export interface SystemModule {
+export interface Attachment {
   id: string
   name: string
-  status: "ONLINE" | "OFFLINE" | "MAINTENANCE" | "ERROR"
-  version: string
-  uptime: number
-  cpu: number
-  memory: number
-  lastRestart: string
+  url: string
+  type: "image" | "document" | "video" | "other"
+  size: number
+  uploadedAt: string
 }
 
-export interface Signal {
+export interface Link {
   id: string
-  frequency: string
-  strength: number
-  source: string
-  location: string
-  classification: "FRIENDLY" | "HOSTILE" | "UNKNOWN" | "NEUTRAL"
+  title: string
+  url: string
+  description?: string
+  favicon?: string
+  createdAt: string
+}
+
+export interface SocialAccount {
+  id: string
+  platform: "twitter" | "instagram" | "facebook" | "linkedin" | "youtube" | "tiktok" | "other"
+  username: string
+  url: string
+  createdAt: string
+}
+
+export interface Label {
+  id: string
+  name: string
+  color: string
+}
+
+export interface Comment {
+  id: string
+  text: string
+  author: string
+  createdAt: string
+  updatedAt?: string
+}
+
+export interface Mission {
+  id: string
+  title: string
+  description: string
+  status: "Planning" | "Active" | "Completed" | "Cancelled"
+  priority: "Low" | "Medium" | "High" | "Critical"
+  startDate: string
+  endDate?: string
+  tasks: Task[]
+  assignedTeam: string[]
+  progress: number
+}
+
+export interface SystemStatus {
+  id: string
+  name: string
+  status: "Online" | "Offline" | "Warning" | "Error"
+  lastUpdate: string
+  metrics?: {
+    cpu?: number
+    memory?: number
+    disk?: number
+    network?: number
+  }
+}
+
+export interface Alert {
+  id: string
+  title: string
+  message: string
+  type: "info" | "warning" | "error" | "success"
   timestamp: string
-  encrypted: boolean
+  acknowledged: boolean
+  source: string
+}
+
+export interface User {
+  id: string
+  name: string
+  email: string
+  role: "Admin" | "Operator" | "Viewer"
+  avatar?: string
+  lastActive: string
+  permissions: string[]
 }

@@ -1,184 +1,191 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Progress } from "@/components/ui/progress"
 import { Button } from "@/components/ui/button"
-import { Settings, Power, RefreshCw, AlertTriangle, CheckCircle, XCircle, Cpu, HardDrive } from "lucide-react"
-import { useMissionData } from "@/hooks/use-mission-data"
+import { Database, Cpu, HardDrive, Thermometer, AlertTriangle, CheckCircle, Power } from "lucide-react"
 
-export function SystemsPanel() {
-  const { missionData } = useMissionData()
-  const { systems } = missionData
+interface SystemsPanelProps {
+  compact?: boolean
+}
+
+export function SystemsPanel({ compact = false }: SystemsPanelProps) {
+  const [systems, setSystems] = useState([
+    {
+      name: "PRIMARY SERVER",
+      status: "ONLINE",
+      cpu: 45,
+      memory: 67,
+      disk: 34,
+      temp: 42,
+      uptime: "72:45:12",
+    },
+    {
+      name: "BACKUP SERVER",
+      status: "ONLINE",
+      cpu: 23,
+      memory: 45,
+      disk: 28,
+      temp: 38,
+      uptime: "72:45:12",
+    },
+    {
+      name: "COMM RELAY",
+      status: "WARNING",
+      cpu: 78,
+      memory: 89,
+      disk: 56,
+      temp: 65,
+      uptime: "48:23:07",
+    },
+    {
+      name: "RADAR ARRAY",
+      status: "ONLINE",
+      cpu: 56,
+      memory: 72,
+      disk: 41,
+      temp: 44,
+      uptime: "120:15:33",
+    },
+  ])
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSystems((prev) =>
+        prev.map((system) => ({
+          ...system,
+          cpu: Math.max(10, Math.min(95, system.cpu + (Math.random() - 0.5) * 10)),
+          memory: Math.max(20, Math.min(95, system.memory + (Math.random() - 0.5) * 8)),
+          temp: Math.max(30, Math.min(70, system.temp + (Math.random() - 0.5) * 5)),
+        })),
+      )
+    }, 2000)
+    return () => clearInterval(interval)
+  }, [])
 
   const getStatusColor = (status: string) => {
     switch (status) {
       case "ONLINE":
-        return "text-tactical-green border-tactical-green bg-tactical-green/10"
-      case "MAINTENANCE":
-        return "text-tactical-amber border-tactical-amber bg-tactical-amber/10"
-      case "ERROR":
-        return "text-tactical-red border-tactical-red bg-tactical-red/10"
+        return "text-green-400 bg-green-400/20 border-green-400/50 status-online"
+      case "WARNING":
+        return "text-yellow-400 bg-yellow-400/20 border-yellow-400/50"
       case "OFFLINE":
-        return "text-muted-foreground border-muted-foreground bg-muted/10"
+        return "text-red-400 bg-red-400/20 border-red-400/50"
       default:
-        return "text-muted-foreground border-border"
+        return "text-gray-400 bg-gray-400/20 border-gray-400/50"
     }
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "ONLINE":
-        return <CheckCircle className="h-3 w-3" />
-      case "MAINTENANCE":
-        return <Settings className="h-3 w-3" />
-      case "ERROR":
-        return <XCircle className="h-3 w-3" />
+        return CheckCircle
+      case "WARNING":
+        return AlertTriangle
       case "OFFLINE":
-        return <Power className="h-3 w-3" />
+        return Power
       default:
-        return <AlertTriangle className="h-3 w-3" />
+        return AlertTriangle
     }
   }
 
-  const onlineCount = systems.filter((s) => s.status === "ONLINE").length
-  const maintenanceCount = systems.filter((s) => s.status === "MAINTENANCE").length
-  const errorCount = systems.filter((s) => s.status === "ERROR").length
-  const offlineCount = systems.filter((s) => s.status === "OFFLINE").length
+  const displaySystems = compact ? systems.slice(0, 2) : systems
 
   return (
-    <div className="space-y-4">
-      {/* Systems Overview */}
-      <Card className="border-border bg-card">
-        <CardHeader className="border-b border-border pb-2">
-          <CardTitle className="text-xs font-mono uppercase tracking-wider flex items-center gap-2">
-            <Settings className="h-3 w-3" />
-            SYSTEM MODULES STATUS
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">ONLINE</div>
-              <div className="text-2xl font-mono text-tactical-green">{onlineCount}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">MAINTENANCE</div>
-              <div className="text-2xl font-mono text-tactical-amber">{maintenanceCount}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">ERROR</div>
-              <div className="text-2xl font-mono text-tactical-red">{errorCount}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">OFFLINE</div>
-              <div className="text-2xl font-mono text-muted-foreground">{offlineCount}</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <Card className="bg-slate-900/50 border-white/30 backdrop-blur">
+      <CardHeader>
+        <CardTitle className="text-white font-mono flex items-center gap-2">
+          <Database className="w-5 h-5" />
+          SYSTEM STATUS
+          <Badge className="bg-green-400/20 text-green-400 border-green-400/50 ml-auto status-online">
+            {systems.filter((s) => s.status === "ONLINE").length}/{systems.length} ONLINE
+          </Badge>
+        </CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {displaySystems.map((system, index) => {
+          const StatusIcon = getStatusIcon(system.status)
+          return (
+            <Card key={index} className="bg-slate-800/50 border-white/20">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-3">
+                  <div className="flex items-center gap-2">
+                    <StatusIcon className="w-4 h-4 text-white" />
+                    <h3 className="font-mono font-bold text-white text-sm">{system.name}</h3>
+                  </div>
+                  <Badge className={`text-xs ${getStatusColor(system.status)}`}>{system.status}</Badge>
+                </div>
 
-      {/* System Modules Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {systems.map((system) => (
-          <Card
-            key={system.id}
-            className={`border-2 ${getStatusColor(system.status).split(" ")[1]} ${getStatusColor(system.status).split(" ")[2]}`}
-          >
-            <CardHeader className="border-b border-border pb-2">
-              <div className="flex items-center justify-between">
-                <CardTitle className="text-xs font-mono uppercase tracking-wider">{system.name}</CardTitle>
-                <div className="flex items-center gap-1">
-                  {getStatusIcon(system.status)}
-                  <span className={`text-xs font-mono ${getStatusColor(system.status).split(" ")[0]}`}>
-                    {system.status}
-                  </span>
-                </div>
-              </div>
-            </CardHeader>
-            <CardContent className="p-4 space-y-3">
-              <div className="grid grid-cols-2 gap-2 text-xs">
-                <div>
-                  <div className="text-muted-foreground">VERSION</div>
-                  <div className="font-mono">{system.version}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">UPTIME</div>
-                  <div className="font-mono">{system.uptime.toFixed(1)}%</div>
-                </div>
-              </div>
+                <div className="grid grid-cols-2 gap-3 text-xs">
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-white/70 flex items-center gap-1">
+                        <Cpu className="w-3 h-3" />
+                        CPU
+                      </span>
+                      <span className="text-white">{system.cpu.toFixed(0)}%</span>
+                    </div>
+                    <Progress value={system.cpu} className="h-1 bg-slate-700" />
+                  </div>
 
-              {/* CPU Usage */}
-              <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <Cpu className="h-3 w-3" />
-                  CPU: {system.cpu.toFixed(1)}%
-                </div>
-                <div className="w-full bg-secondary h-2">
-                  <div
-                    className={`h-2 ${system.cpu > 80 ? "bg-tactical-red" : system.cpu > 60 ? "bg-tactical-amber" : "bg-tactical-green"}`}
-                    style={{ width: `${Math.min(100, system.cpu)}%` }}
-                  />
-                </div>
-              </div>
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-white/70 flex items-center gap-1">
+                        <HardDrive className="w-3 h-3" />
+                        MEM
+                      </span>
+                      <span className="text-white">{system.memory.toFixed(0)}%</span>
+                    </div>
+                    <Progress value={system.memory} className="h-1 bg-slate-700" />
+                  </div>
 
-              {/* Memory Usage */}
-              <div className="space-y-1">
-                <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                  <HardDrive className="h-3 w-3" />
-                  MEMORY: {system.memory.toFixed(1)}%
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-white/70 flex items-center gap-1">
+                        <Database className="w-3 h-3" />
+                        DISK
+                      </span>
+                      <span className="text-white">{system.disk}%</span>
+                    </div>
+                    <Progress value={system.disk} className="h-1 bg-slate-700" />
+                  </div>
+
+                  <div className="space-y-2">
+                    <div className="flex justify-between">
+                      <span className="text-white/70 flex items-center gap-1">
+                        <Thermometer className="w-3 h-3" />
+                        TEMP
+                      </span>
+                      <span
+                        className={`${system.temp > 60 ? "text-red-400" : system.temp > 50 ? "text-yellow-400" : "text-white"}`}
+                      >
+                        {system.temp.toFixed(0)}°C
+                      </span>
+                    </div>
+                  </div>
                 </div>
-                <div className="w-full bg-secondary h-2">
-                  <div
-                    className={`h-2 ${system.memory > 80 ? "bg-tactical-red" : system.memory > 60 ? "bg-tactical-amber" : "bg-tactical-green"}`}
-                    style={{ width: `${Math.min(100, system.memory)}%` }}
-                  />
+
+                <div className="mt-3 pt-2 border-t border-white/20 text-xs text-white/70">
+                  <span>UPTIME: {system.uptime}</span>
                 </div>
-              </div>
+              </CardContent>
+            </Card>
+          )
+        })}
 
-              <div className="text-xs text-muted-foreground">
-                Last Restart: {new Date(system.lastRestart).toLocaleDateString()}
-              </div>
-
-              <div className="flex gap-2">
-                <Button className="tactical-button h-6 px-2 text-xs flex-1">
-                  <RefreshCw className="h-3 w-3 mr-1" />
-                  RESTART
-                </Button>
-                <Button className="tactical-button h-6 px-2 text-xs flex-1">
-                  <Settings className="h-3 w-3 mr-1" />
-                  CONFIG
-                </Button>
-              </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* System Actions */}
-      <Card className="border-border bg-card">
-        <CardHeader className="border-b border-border pb-2">
-          <CardTitle className="text-xs font-mono uppercase tracking-wider">SYSTEM ACTIONS</CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button className="tactical-button h-10 flex flex-col items-center justify-center gap-1">
-              <Power className="h-4 w-4" />
-              <span className="text-xs">POWER CYCLE</span>
+        {!compact && (
+          <div className="flex gap-2 pt-2">
+            <Button className="bg-white/20 text-white border border-white/50 hover:bg-white/30 font-mono text-xs">
+              DIAGNOSTICS
             </Button>
-            <Button className="tactical-button h-10 flex flex-col items-center justify-center gap-1">
-              <RefreshCw className="h-4 w-4" />
-              <span className="text-xs">RESTART ALL</span>
-            </Button>
-            <Button className="tactical-button h-10 flex flex-col items-center justify-center gap-1">
-              <Settings className="h-4 w-4" />
-              <span className="text-xs">SYSTEM CONFIG</span>
-            </Button>
-            <Button className="tactical-button h-10 flex flex-col items-center justify-center gap-1">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="text-xs">EMERGENCY STOP</span>
+            <Button variant="ghost" className="text-white/70 hover:text-white hover:bg-white/10 font-mono text-xs">
+              MAINTENANCE
             </Button>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+        )}
+      </CardContent>
+    </Card>
   )
 }

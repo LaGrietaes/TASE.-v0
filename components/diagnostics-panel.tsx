@@ -1,210 +1,235 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { AlertTriangle, CheckCircle, XCircle, Clock, Activity, Thermometer, Zap, Gauge } from "lucide-react"
-import { useMissionData } from "@/hooks/use-mission-data"
+import { Progress } from "@/components/ui/progress"
+import { Settings, AlertTriangle, CheckCircle, XCircle, RefreshCw, Wrench, Activity } from "lucide-react"
 
 export function DiagnosticsPanel() {
-  const { missionData } = useMissionData()
-  const { diagnostics } = missionData
+  const [diagnostics, setDiagnostics] = useState([
+    {
+      system: "RADAR ARRAY",
+      status: "OPERATIONAL",
+      lastCheck: "14:30:15",
+      issues: 0,
+      performance: 98,
+      nextMaintenance: "72h",
+    },
+    {
+      system: "COMMUNICATION RELAY",
+      status: "WARNING",
+      lastCheck: "14:28:42",
+      issues: 2,
+      performance: 85,
+      nextMaintenance: "24h",
+    },
+    {
+      system: "POWER GRID",
+      status: "OPERATIONAL",
+      lastCheck: "14:32:01",
+      issues: 0,
+      performance: 95,
+      nextMaintenance: "168h",
+    },
+    {
+      system: "COOLING SYSTEM",
+      status: "CRITICAL",
+      lastCheck: "14:25:33",
+      issues: 1,
+      performance: 67,
+      nextMaintenance: "OVERDUE",
+    },
+    {
+      system: "BACKUP GENERATORS",
+      status: "OPERATIONAL",
+      lastCheck: "14:31:18",
+      issues: 0,
+      performance: 92,
+      nextMaintenance: "48h",
+    },
+  ])
+
+  const [isRunningDiagnostics, setIsRunningDiagnostics] = useState(false)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setDiagnostics((prev) =>
+        prev.map((diag) => ({
+          ...diag,
+          performance: Math.max(60, Math.min(100, diag.performance + (Math.random() - 0.5) * 5)),
+          lastCheck: new Date().toLocaleTimeString("en-US", { hour12: false }),
+        })),
+      )
+    }, 5000)
+    return () => clearInterval(interval)
+  }, [])
+
+  const runDiagnostics = () => {
+    setIsRunningDiagnostics(true)
+    setTimeout(() => {
+      setIsRunningDiagnostics(false)
+      setDiagnostics((prev) =>
+        prev.map((diag) => ({
+          ...diag,
+          lastCheck: new Date().toLocaleTimeString("en-US", { hour12: false }),
+          issues: Math.max(0, diag.issues - Math.floor(Math.random() * 2)),
+        })),
+      )
+    }, 3000)
+  }
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case "HEALTHY":
-        return "text-tactical-green border-tactical-green bg-tactical-green/10"
+      case "OPERATIONAL":
+        return "text-green-400 bg-green-400/20 border-green-400/50"
       case "WARNING":
-        return "text-tactical-amber border-tactical-amber bg-tactical-amber/10"
+        return "text-yellow-400 bg-yellow-400/20 border-yellow-400/50"
       case "CRITICAL":
-        return "text-tactical-red border-tactical-red bg-tactical-red/10"
+        return "text-red-400 bg-red-400/20 border-red-400/50"
       case "OFFLINE":
-        return "text-muted-foreground border-muted-foreground bg-muted/10"
+        return "text-gray-400 bg-gray-400/20 border-gray-400/50"
       default:
-        return "text-muted-foreground border-border"
+        return "text-gray-400 bg-gray-400/20 border-gray-400/50"
     }
   }
 
   const getStatusIcon = (status: string) => {
     switch (status) {
-      case "HEALTHY":
-        return <CheckCircle className="h-3 w-3" />
+      case "OPERATIONAL":
+        return CheckCircle
       case "WARNING":
-        return <AlertTriangle className="h-3 w-3" />
+        return AlertTriangle
       case "CRITICAL":
-        return <XCircle className="h-3 w-3" />
+        return XCircle
       case "OFFLINE":
-        return <XCircle className="h-3 w-3" />
+        return XCircle
       default:
-        return <AlertTriangle className="h-3 w-3" />
+        return AlertTriangle
     }
   }
 
-  const healthyCount = diagnostics.filter((d) => d.status === "HEALTHY").length
-  const warningCount = diagnostics.filter((d) => d.status === "WARNING").length
-  const criticalCount = diagnostics.filter((d) => d.status === "CRITICAL").length
-  const offlineCount = diagnostics.filter((d) => d.status === "OFFLINE").length
-
   return (
-    <div className="space-y-4">
-      {/* Diagnostics Overview */}
-      <Card className="border-border bg-card">
-        <CardHeader className="border-b border-border pb-2">
-          <CardTitle className="text-xs font-mono uppercase tracking-wider flex items-center gap-2">
-            <Activity className="h-3 w-3" />
-            SYSTEM DIAGNOSTICS OVERVIEW
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">HEALTHY</div>
-              <div className="text-2xl font-mono text-tactical-green">{healthyCount}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">WARNING</div>
-              <div className="text-2xl font-mono text-tactical-amber">{warningCount}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">CRITICAL</div>
-              <div className="text-2xl font-mono text-tactical-red">{criticalCount}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">OFFLINE</div>
-              <div className="text-2xl font-mono text-muted-foreground">{offlineCount}</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* System Health Status */}
-        <Card className="border-border bg-card">
-          <CardHeader className="border-b border-border pb-2">
-            <CardTitle className="text-xs font-mono uppercase tracking-wider">SYSTEM HEALTH STATUS</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-96 overflow-auto">
-              <div className="space-y-2 p-4">
-                {diagnostics.map((diagnostic) => (
-                  <div key={diagnostic.id} className={`border-l-2 pl-3 py-2 ${getStatusColor(diagnostic.status)}`}>
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs font-mono font-semibold">
-                          {diagnostic.system} - {diagnostic.component}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          {getStatusIcon(diagnostic.status)}
-                          <span className="text-xs font-mono">{diagnostic.status}</span>
-                        </div>
-                      </div>
-                      <div className="text-xs text-muted-foreground">{diagnostic.details}</div>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          Last: {new Date(diagnostic.lastCheck).toLocaleTimeString()}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="h-3 w-3" />
-                          Next: {new Date(diagnostic.nextCheck).toLocaleTimeString()}
-                        </div>
-                      </div>
-                      <div className="flex gap-2 mt-2">
-                        <Button className="tactical-button h-6 px-2 text-xs">RUN CHECK</Button>
-                        <Button className="tactical-button h-6 px-2 text-xs">VIEW LOGS</Button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* System Metrics */}
-        <Card className="border-border bg-card">
-          <CardHeader className="border-b border-border pb-2">
-            <CardTitle className="text-xs font-mono uppercase tracking-wider">SYSTEM METRICS</CardTitle>
-          </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-96 overflow-auto">
-              <div className="space-y-3 p-4">
-                {diagnostics.slice(0, 6).map((diagnostic) => (
-                  <div key={diagnostic.id} className="border border-border p-3 space-y-2">
-                    <div className="text-xs font-mono font-semibold">
-                      {diagnostic.system} - {diagnostic.component}
-                    </div>
-                    <div className="grid grid-cols-3 gap-2">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Thermometer className="h-3 w-3" />
-                          TEMP
-                        </div>
-                        <div className="text-xs font-mono">{diagnostic.metrics.temperature?.toFixed(1) || "N/A"}°C</div>
-                        <div className="w-full bg-secondary h-1">
-                          <div
-                            className={`h-1 ${diagnostic.metrics.temperature > 60 ? "bg-tactical-red" : diagnostic.metrics.temperature > 45 ? "bg-tactical-amber" : "bg-tactical-green"}`}
-                            style={{ width: `${Math.min(100, (diagnostic.metrics.temperature / 80) * 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Zap className="h-3 w-3" />
-                          VOLT
-                        </div>
-                        <div className="text-xs font-mono">{diagnostic.metrics.voltage?.toFixed(1) || "N/A"}V</div>
-                        <div className="w-full bg-secondary h-1">
-                          <div
-                            className={`h-1 ${diagnostic.metrics.voltage < 11 || diagnostic.metrics.voltage > 13 ? "bg-tactical-red" : "bg-tactical-green"}`}
-                            style={{ width: `${Math.min(100, (diagnostic.metrics.voltage / 15) * 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                          <Gauge className="h-3 w-3" />
-                          AMP
-                        </div>
-                        <div className="text-xs font-mono">{diagnostic.metrics.current?.toFixed(1) || "N/A"}A</div>
-                        <div className="w-full bg-secondary h-1">
-                          <div
-                            className={`h-1 ${diagnostic.metrics.current > 4 ? "bg-tactical-red" : diagnostic.metrics.current > 3 ? "bg-tactical-amber" : "bg-tactical-green"}`}
-                            style={{ width: `${Math.min(100, (diagnostic.metrics.current / 5) * 100)}%` }}
-                          />
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold font-mono text-green-400">SYSTEM DIAGNOSTICS</h1>
+        <div className="flex gap-2">
+          <Button
+            onClick={runDiagnostics}
+            disabled={isRunningDiagnostics}
+            className="bg-green-400/20 text-green-400 border border-green-400/50 hover:bg-green-400/30 font-mono"
+          >
+            <RefreshCw className={`w-4 h-4 mr-2 ${isRunningDiagnostics ? "animate-spin" : ""}`} />
+            {isRunningDiagnostics ? "RUNNING..." : "RUN DIAGNOSTICS"}
+          </Button>
+        </div>
       </div>
 
-      {/* Quick Actions */}
-      <Card className="border-border bg-card">
-        <CardHeader className="border-b border-border pb-2">
-          <CardTitle className="text-xs font-mono uppercase tracking-wider">DIAGNOSTIC ACTIONS</CardTitle>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {diagnostics.map((diag, index) => {
+          const StatusIcon = getStatusIcon(diag.status)
+          return (
+            <Card key={index} className="bg-slate-900/50 border-green-400/30 backdrop-blur">
+              <CardHeader>
+                <CardTitle className="text-green-400 font-mono flex items-center gap-2">
+                  <Settings className="w-5 h-5" />
+                  {diag.system}
+                  <Badge className={`ml-auto ${getStatusColor(diag.status)}`}>{diag.status}</Badge>
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid grid-cols-2 gap-4 text-sm">
+                  <div>
+                    <span className="text-green-400/70">Last Check:</span>
+                    <div className="text-green-400 font-mono">{diag.lastCheck}</div>
+                  </div>
+                  <div>
+                    <span className="text-green-400/70">Issues:</span>
+                    <div className={`font-mono ${diag.issues > 0 ? "text-red-400" : "text-green-400"}`}>
+                      {diag.issues}
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-green-400/70">Performance:</span>
+                    <div
+                      className={`font-mono ${diag.performance > 90 ? "text-green-400" : diag.performance > 75 ? "text-yellow-400" : "text-red-400"}`}
+                    >
+                      {diag.performance.toFixed(0)}%
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-green-400/70">Next Maintenance:</span>
+                    <div
+                      className={`font-mono ${diag.nextMaintenance === "OVERDUE" ? "text-red-400" : "text-green-400"}`}
+                    >
+                      {diag.nextMaintenance}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-green-400/70">System Performance</span>
+                    <span className="text-green-400">{diag.performance.toFixed(0)}%</span>
+                  </div>
+                  <Progress value={diag.performance} className="h-2 bg-slate-700" />
+                </div>
+
+                <div className="flex gap-2 pt-2">
+                  <Button
+                    size="sm"
+                    className="bg-blue-400/20 text-blue-400 border border-blue-400/50 hover:bg-blue-400/30 font-mono text-xs"
+                  >
+                    <Activity className="w-3 h-3 mr-1" />
+                    DETAILS
+                  </Button>
+                  {diag.issues > 0 && (
+                    <Button
+                      size="sm"
+                      className="bg-yellow-400/20 text-yellow-400 border border-yellow-400/50 hover:bg-yellow-400/30 font-mono text-xs"
+                    >
+                      <Wrench className="w-3 h-3 mr-1" />
+                      REPAIR
+                    </Button>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+          )
+        })}
+      </div>
+
+      <Card className="bg-slate-900/50 border-green-400/30 backdrop-blur">
+        <CardHeader>
+          <CardTitle className="text-green-400 font-mono">SYSTEM OVERVIEW</CardTitle>
         </CardHeader>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button className="tactical-button h-10 flex flex-col items-center justify-center gap-1">
-              <Activity className="h-4 w-4" />
-              <span className="text-xs">RUN FULL SCAN</span>
-            </Button>
-            <Button className="tactical-button h-10 flex flex-col items-center justify-center gap-1">
-              <CheckCircle className="h-4 w-4" />
-              <span className="text-xs">HEALTH CHECK</span>
-            </Button>
-            <Button className="tactical-button h-10 flex flex-col items-center justify-center gap-1">
-              <AlertTriangle className="h-4 w-4" />
-              <span className="text-xs">VIEW ALERTS</span>
-            </Button>
-            <Button className="tactical-button h-10 flex flex-col items-center justify-center gap-1">
-              <Clock className="h-4 w-4" />
-              <span className="text-xs">SCHEDULE MAINT</span>
-            </Button>
+        <CardContent>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+            <div className="bg-slate-800/50 border border-green-400/20 rounded p-4">
+              <div className="text-2xl font-bold text-green-400 font-mono">
+                {diagnostics.filter((d) => d.status === "OPERATIONAL").length}
+              </div>
+              <div className="text-sm text-green-400/70">OPERATIONAL</div>
+            </div>
+            <div className="bg-slate-800/50 border border-yellow-400/20 rounded p-4">
+              <div className="text-2xl font-bold text-yellow-400 font-mono">
+                {diagnostics.filter((d) => d.status === "WARNING").length}
+              </div>
+              <div className="text-sm text-green-400/70">WARNING</div>
+            </div>
+            <div className="bg-slate-800/50 border border-red-400/20 rounded p-4">
+              <div className="text-2xl font-bold text-red-400 font-mono">
+                {diagnostics.filter((d) => d.status === "CRITICAL").length}
+              </div>
+              <div className="text-sm text-green-400/70">CRITICAL</div>
+            </div>
+            <div className="bg-slate-800/50 border border-green-400/20 rounded p-4">
+              <div className="text-2xl font-bold text-green-400 font-mono">
+                {diagnostics.reduce((sum, d) => sum + d.performance, 0) / diagnostics.length}%
+              </div>
+              <div className="text-sm text-green-400/70">AVG PERFORMANCE</div>
+            </div>
           </div>
         </CardContent>
       </Card>

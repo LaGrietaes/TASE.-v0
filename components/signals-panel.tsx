@@ -1,202 +1,231 @@
 "use client"
 
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Radio, Lock, Unlock, MapPin, Clock, Activity, TrendingUp } from "lucide-react"
-import { useMissionData } from "@/hooks/use-mission-data"
+import { Progress } from "@/components/ui/progress"
+import { Zap, Radio, Wifi, Satellite, Activity, TrendingUp, Volume2 } from "lucide-react"
 
 export function SignalsPanel() {
-  const { missionData } = useMissionData()
-  const { signals } = missionData
+  const [signals, setSignals] = useState([
+    {
+      frequency: "145.500 MHz",
+      type: "VHF",
+      strength: 85,
+      quality: 92,
+      source: "TACTICAL-1",
+      encrypted: true,
+      active: true,
+    },
+    {
+      frequency: "2.4 GHz",
+      type: "WIFI",
+      strength: 67,
+      quality: 78,
+      source: "DATA-LINK",
+      encrypted: true,
+      active: true,
+    },
+    {
+      frequency: "1.575 GHz",
+      type: "GPS",
+      strength: 94,
+      quality: 96,
+      source: "SATELLITE",
+      encrypted: false,
+      active: true,
+    },
+    {
+      frequency: "433.920 MHz",
+      type: "UHF",
+      strength: 45,
+      quality: 52,
+      source: "REMOTE-SENSOR",
+      encrypted: false,
+      active: false,
+    },
+  ])
 
-  const getClassificationColor = (classification: string) => {
-    switch (classification) {
-      case "FRIENDLY":
-        return "text-tactical-green border-tactical-green bg-tactical-green/10"
-      case "HOSTILE":
-        return "text-tactical-red border-tactical-red bg-tactical-red/10"
-      case "UNKNOWN":
-        return "text-tactical-amber border-tactical-amber bg-tactical-amber/10"
-      case "NEUTRAL":
-        return "text-tactical-blue border-tactical-blue bg-tactical-blue/10"
-      default:
-        return "text-muted-foreground border-border"
-    }
+  const [waveformData, setWaveformData] = useState(Array.from({ length: 50 }, () => Math.random() * 100))
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setSignals((prev) =>
+        prev.map((signal) => ({
+          ...signal,
+          strength: Math.max(20, Math.min(100, signal.strength + (Math.random() - 0.5) * 10)),
+          quality: Math.max(30, Math.min(100, signal.quality + (Math.random() - 0.5) * 8)),
+        })),
+      )
+
+      setWaveformData((prev) => [...prev.slice(1), Math.random() * 100])
+    }, 1000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  const getSignalColor = (strength: number) => {
+    if (strength > 80) return "text-green-400"
+    if (strength > 60) return "text-yellow-400"
+    if (strength > 40) return "text-orange-400"
+    return "text-red-400"
   }
-
-  const getSignalStrengthColor = (strength: number) => {
-    if (strength > 80) return "text-tactical-green"
-    if (strength > 50) return "text-tactical-amber"
-    if (strength > 20) return "text-tactical-red"
-    return "text-muted-foreground"
-  }
-
-  const friendlyCount = signals.filter((s) => s.classification === "FRIENDLY").length
-  const hostileCount = signals.filter((s) => s.classification === "HOSTILE").length
-  const unknownCount = signals.filter((s) => s.classification === "UNKNOWN").length
-  const encryptedCount = signals.filter((s) => s.encrypted).length
-
-  const frequencies = [...new Set(signals.map((s) => s.frequency))]
-  const recentSignals = signals.slice(0, 10)
 
   return (
-    <div className="space-y-4">
-      {/* Signals Overview */}
-      <Card className="border-border bg-card">
-        <CardHeader className="border-b border-border pb-2">
-          <CardTitle className="text-xs font-mono uppercase tracking-wider flex items-center gap-2">
-            <Radio className="h-3 w-3" />
-            SIGNAL INTELLIGENCE OVERVIEW
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">FRIENDLY</div>
-              <div className="text-2xl font-mono text-tactical-green">{friendlyCount}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">HOSTILE</div>
-              <div className="text-2xl font-mono text-tactical-red">{hostileCount}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">UNKNOWN</div>
-              <div className="text-2xl font-mono text-tactical-amber">{unknownCount}</div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-xs font-mono uppercase tracking-wider text-muted-foreground">ENCRYPTED</div>
-              <div className="text-2xl font-mono text-tactical-blue">{encryptedCount}</div>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
+    <div className="p-6 space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold font-mono text-green-400">SIGNALS INTELLIGENCE</h1>
+        <Badge className="bg-green-400/20 text-green-400 border-green-400/50">
+          {signals.filter((s) => s.active).length} ACTIVE CHANNELS
+        </Badge>
+      </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Recent Signals */}
-        <Card className="border-border bg-card">
-          <CardHeader className="border-b border-border pb-2">
-            <CardTitle className="text-xs font-mono uppercase tracking-wider">RECENT SIGNALS</CardTitle>
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="bg-slate-900/50 border-green-400/30 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="text-green-400 font-mono flex items-center gap-2">
+              <Activity className="w-5 h-5" />
+              SIGNAL WAVEFORM
+            </CardTitle>
           </CardHeader>
-          <CardContent className="p-0">
-            <div className="max-h-96 overflow-auto">
-              <div className="space-y-2 p-4">
-                {recentSignals.map((signal) => (
-                  <div
-                    key={signal.id}
-                    className={`border-l-2 pl-3 py-2 ${getClassificationColor(signal.classification)}`}
-                  >
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <div className="text-xs font-mono font-semibold">{signal.frequency}</div>
-                        <div className="flex items-center gap-2">
-                          {signal.encrypted ? (
-                            <Lock className="h-3 w-3 text-tactical-green" />
-                          ) : (
-                            <Unlock className="h-3 w-3 text-tactical-amber" />
-                          )}
-                          <span
-                            className={`text-xs font-mono ${getClassificationColor(signal.classification).split(" ")[0]}`}
-                          >
-                            {signal.classification}
-                          </span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-4 text-xs text-muted-foreground">
-                        <div className="flex items-center gap-1">
-                          <Radio className="h-3 w-3" />
-                          {signal.source}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <MapPin className="h-3 w-3" />
-                          {signal.location}
-                        </div>
-                        <div className="flex items-center gap-1">
-                          <TrendingUp className="h-3 w-3" />
-                          <span className={getSignalStrengthColor(signal.strength)}>{signal.strength.toFixed(0)}%</span>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                        <Clock className="h-3 w-3" />
-                        {new Date(signal.timestamp).toLocaleTimeString()}
-                      </div>
-                      <div className="w-full bg-secondary h-1 mt-1">
-                        <div
-                          className={`h-1 ${getSignalStrengthColor(signal.strength).replace("text-", "bg-")}`}
-                          style={{ width: `${Math.min(100, signal.strength)}%` }}
-                        />
-                      </div>
-                    </div>
-                  </div>
-                ))}
+          <CardContent>
+            <div className="h-32 bg-slate-800/50 border border-green-400/20 rounded p-2 relative overflow-hidden">
+              <svg className="w-full h-full">
+                <polyline
+                  fill="none"
+                  stroke="rgb(74, 222, 128)"
+                  strokeWidth="2"
+                  points={waveformData
+                    .map((value, index) => `${(index / (waveformData.length - 1)) * 100}%,${100 - value}%`)
+                    .join(" ")}
+                />
+              </svg>
+              <div className="absolute top-2 left-2 text-xs text-green-400/70 font-mono">
+                REAL-TIME SPECTRUM ANALYSIS
               </div>
             </div>
           </CardContent>
         </Card>
 
-        {/* Frequency Analysis */}
-        <Card className="border-border bg-card">
-          <CardHeader className="border-b border-border pb-2">
-            <CardTitle className="text-xs font-mono uppercase tracking-wider">FREQUENCY ANALYSIS</CardTitle>
+        <Card className="bg-slate-900/50 border-green-400/30 backdrop-blur">
+          <CardHeader>
+            <CardTitle className="text-green-400 font-mono flex items-center gap-2">
+              <TrendingUp className="w-5 h-5" />
+              SIGNAL STATISTICS
+            </CardTitle>
           </CardHeader>
-          <CardContent className="p-4">
-            <div className="space-y-3">
-              {frequencies.map((frequency) => {
-                const frequencySignals = signals.filter((s) => s.frequency === frequency)
-                const avgStrength = frequencySignals.reduce((sum, s) => sum + s.strength, 0) / frequencySignals.length
-                const hostileInFreq = frequencySignals.filter((s) => s.classification === "HOSTILE").length
-
-                return (
-                  <div key={frequency} className="border border-border p-3 space-y-2">
-                    <div className="flex items-center justify-between">
-                      <div className="text-xs font-mono font-semibold">{frequency}</div>
-                      <div
-                        className={`text-xs font-mono ${hostileInFreq > 0 ? "text-tactical-red" : "text-tactical-green"}`}
-                      >
-                        {hostileInFreq > 0 ? "THREAT DETECTED" : "CLEAR"}
-                      </div>
-                    </div>
-                    <div className="text-xs text-muted-foreground">{frequencySignals.length} signals detected</div>
-                    <div className="text-xs text-muted-foreground">Avg Strength: {avgStrength.toFixed(1)}%</div>
-                    <div className="w-full bg-secondary h-2">
-                      <div
-                        className={`h-2 ${getSignalStrengthColor(avgStrength).replace("text-", "bg-")}`}
-                        style={{ width: `${Math.min(100, avgStrength)}%` }}
-                      />
-                    </div>
-                    <div className="flex gap-2">
-                      <Button className="tactical-button h-6 px-2 text-xs flex-1">MONITOR</Button>
-                      <Button className="tactical-button h-6 px-2 text-xs flex-1">ANALYZE</Button>
-                    </div>
-                  </div>
-                )
-              })}
+          <CardContent>
+            <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="bg-slate-800/50 border border-green-400/20 rounded p-3 text-center">
+                <div className="text-2xl font-bold text-green-400 font-mono">
+                  {signals.filter((s) => s.active).length}
+                </div>
+                <div className="text-green-400/70">ACTIVE</div>
+              </div>
+              <div className="bg-slate-800/50 border border-green-400/20 rounded p-3 text-center">
+                <div className="text-2xl font-bold text-green-400 font-mono">
+                  {signals.filter((s) => s.encrypted).length}
+                </div>
+                <div className="text-green-400/70">ENCRYPTED</div>
+              </div>
+              <div className="bg-slate-800/50 border border-green-400/20 rounded p-3 text-center">
+                <div className="text-2xl font-bold text-green-400 font-mono">
+                  {Math.round(signals.reduce((sum, s) => sum + s.strength, 0) / signals.length)}%
+                </div>
+                <div className="text-green-400/70">AVG STRENGTH</div>
+              </div>
+              <div className="bg-slate-800/50 border border-green-400/20 rounded p-3 text-center">
+                <div className="text-2xl font-bold text-green-400 font-mono">
+                  {Math.round(signals.reduce((sum, s) => sum + s.quality, 0) / signals.length)}%
+                </div>
+                <div className="text-green-400/70">AVG QUALITY</div>
+              </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Signal Actions */}
-      <Card className="border-border bg-card">
-        <CardHeader className="border-b border-border pb-2">
-          <CardTitle className="text-xs font-mono uppercase tracking-wider">SIGNAL OPERATIONS</CardTitle>
+      <Card className="bg-slate-900/50 border-green-400/30 backdrop-blur">
+        <CardHeader>
+          <CardTitle className="text-green-400 font-mono flex items-center gap-2">
+            <Radio className="w-5 h-5" />
+            FREQUENCY MONITOR
+          </CardTitle>
         </CardHeader>
-        <CardContent className="p-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-            <Button className="tactical-button h-10 flex flex-col items-center justify-center gap-1">
-              <Radio className="h-4 w-4" />
-              <span className="text-xs">SCAN SPECTRUM</span>
+        <CardContent>
+          <div className="space-y-4">
+            {signals.map((signal, index) => {
+              const getTypeIcon = (type: string) => {
+                switch (type) {
+                  case "VHF":
+                    return Radio
+                  case "UHF":
+                    return Radio
+                  case "WIFI":
+                    return Wifi
+                  case "GPS":
+                    return Satellite
+                  default:
+                    return Zap
+                }
+              }
+              const TypeIcon = getTypeIcon(signal.type)
+
+              return (
+                <Card key={index} className="bg-slate-800/50 border-green-400/20">
+                  <CardContent className="p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center gap-3">
+                        <TypeIcon className="w-4 h-4 text-green-400" />
+                        <div>
+                          <h3 className="font-mono font-bold text-green-400 text-sm">{signal.frequency}</h3>
+                          <p className="text-xs text-green-400/70">{signal.source}</p>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <Badge
+                          className={`text-xs ${signal.active ? "bg-green-400/20 text-green-400 border-green-400/50" : "bg-gray-400/20 text-gray-400 border-gray-400/50"}`}
+                        >
+                          {signal.type}
+                        </Badge>
+                        {signal.encrypted && <div className="w-2 h-2 bg-green-400 rounded-full" title="Encrypted" />}
+                        {signal.active && <Volume2 className="w-3 h-3 text-green-400 animate-pulse" />}
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-green-400/70">STRENGTH</span>
+                          <span className={getSignalColor(signal.strength)}>{signal.strength.toFixed(0)}%</span>
+                        </div>
+                        <Progress value={signal.strength} className="h-1 bg-slate-700" />
+                      </div>
+
+                      <div className="space-y-2">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-green-400/70">QUALITY</span>
+                          <span className={getSignalColor(signal.quality)}>{signal.quality.toFixed(0)}%</span>
+                        </div>
+                        <Progress value={signal.quality} className="h-1 bg-slate-700" />
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              )
+            })}
+          </div>
+
+          <div className="flex gap-2 pt-4 border-t border-green-400/20 mt-4">
+            <Button className="bg-green-400/20 text-green-400 border border-green-400/50 hover:bg-green-400/30 font-mono text-xs">
+              SCAN FREQUENCIES
             </Button>
-            <Button className="tactical-button h-10 flex flex-col items-center justify-center gap-1">
-              <Activity className="h-4 w-4" />
-              <span className="text-xs">SIGNAL ANALYSIS</span>
-            </Button>
-            <Button className="tactical-button h-10 flex flex-col items-center justify-center gap-1">
-              <Lock className="h-4 w-4" />
-              <span className="text-xs">DECRYPT</span>
-            </Button>
-            <Button className="tactical-button h-10 flex flex-col items-center justify-center gap-1">
-              <MapPin className="h-4 w-4" />
-              <span className="text-xs">TRIANGULATE</span>
+            <Button
+              variant="ghost"
+              className="text-green-400/70 hover:text-green-400 hover:bg-green-400/10 font-mono text-xs"
+            >
+              JAMMING PROTOCOLS
             </Button>
           </div>
         </CardContent>
