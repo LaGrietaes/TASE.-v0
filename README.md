@@ -1,30 +1,17 @@
 # Mission control dashboard
 
-*Automatically synced with your [v0.dev](https://v0.dev) deployments*
-
-[![Deployed on Vercel](https://img.shields.io/badge/Deployed%20on-Vercel-black?style=for-the-badge&logo=vercel)](https://vercel.com/lagrietaes-9397s-projects/v0-mission-control-dashboard)
 [![Built with v0](https://img.shields.io/badge/Built%20with-v0.dev-black?style=for-the-badge)](https://v0.dev/chat/projects/lmkMVqvt3Ao)
 
 ## Overview
 
-This repository will stay in sync with your deployed chats on [v0.dev](https://v0.dev).
-Any changes you make to your deployed app will be automatically pushed to this repository from [v0.dev](https://v0.dev).
-
-## Deployment
-
-Your project is live at:
-
-**[https://vercel.com/lagrietaes-9397s-projects/v0-mission-control-dashboard](https://vercel.com/lagrietaes-9397s-projects/v0-mission-control-dashboard)**
+This is a mission control dashboard application. It uses a Firebase database for data storage.
 
 ## Build your app
 
 Continue building your app on:
 
-**[https://v0.dev/chat/projects/lmkMVqvt3Ao](https://v0.dev/chat/projects/lmkMVqvt3Ao)**
+**[https://v0.dev/chat/projects/lmkMVqvt3Ao](https://v0.dev/chat/projects/lmkMVqvt3Ao)** (Note: This project was initially built with v0, but has been modified to use Firebase and is no longer directly linked to v0 deployments.)
 
 ## How It Works
 
-1. Create and modify your project using [v0.dev](https://v0.dev)
-2. Deploy your chats from the v0 interface
-3. Changes are automatically pushed to this repository
-4. Vercel deploys the latest version from this repository
+This application connects to a Firebase database to manage mission data. It is not currently set up for automatic deployment.

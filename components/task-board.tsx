@@ -91,6 +91,34 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
     trackedTasksCount: trackedTasks.length,
     tasks: tasks.map((t) => ({ id: t.id, title: t.title, tracked: isTaskTracked(t.id) })),
   })
+  // Function to open the Add Task dialog
+  const handleOpenAddTaskDialog = () => {
+    // Define a default structure for a new task.
+    const defaultNewTask: Task = {
+      id: '', // Firestore will generate this
+      title: '',
+      description: '',
+      status: 'Pending',
+      priority: 'Low',
+      assignee: '',
+      category: 'Business',
+      dueDate: '',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      coverImage: '',
+      labels: [],
+      checklist: [],
+      attachments: [],
+      links: [],
+      socialAccounts: [],
+      comments: [],
+      missionID: ''
+    };
+
+    setEditedTask(defaultNewTask);
+    setIsDialogOpen(true);
+    setIsEditing(true);
+  };
 
   const toggleCategory = (category: string) => {
     setOpenCategories((prev) => ({
@@ -412,7 +440,10 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
           <p className="text-gray-400">Manage and track mission-critical tasks</p>
         </div>
         <div className="flex items-center space-x-4">
-          <Button className="bg-blue-600 hover:bg-blue-700 text-white border border-blue-500/30">
+          <Button
+            className="bg-blue-600 hover:bg-blue-700 text-white border border-blue-500/30"
+            onClick={handleOpenAddTaskDialog} // Add this line
+          >
             <Plus className="w-4 h-4 mr-2" />
             ADD TASK
           </Button>
@@ -423,7 +454,7 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
             {trackedTasks.length} Tracked
           </Badge>
         </div>
-      </div>
+
 
       <div className="space-y-4">
         {Object.entries(tasksByCategory).map(([category, categoryTasks]) => {

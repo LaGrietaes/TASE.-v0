@@ -1,10 +1,10 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { useState } from "react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -12,13 +12,16 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Bell, Search, Settings, User, LogOut, Eye, Plus } from "lucide-react"
+} from "@/components/ui/dropdown-menu";
+import { Bell, Search, Settings, User, LogOut, Eye, Plus } from "lucide-react";
+import { auth } from "@/lib/firebase"; // Assuming auth is exported from your firebase file
+import { signInWithEmailAndPassword, signOut, onAuthStateChanged } from "firebase/auth";
+import React, { useEffect } from "react"; // Import useEffect and React
 
 interface TopNavigationProps {
-  onToggleTaskTracker: () => void
-  trackedTasksCount: number
-  sidebarCollapsed?: boolean
+  onToggleTaskTracker: () => void;
+  trackedTasksCount: number;
+  sidebarCollapsed?: boolean;
 }
 
 export function TopNavigation({
@@ -26,12 +29,52 @@ export function TopNavigation({
   trackedTasksCount,
   sidebarCollapsed = false,
 }: TopNavigationProps) {
-  const [searchQuery, setSearchQuery] = useState("")
+  const [searchQuery, setSearchQuery] = useState("");
+
+  // State variables for authentication
+  const [user, setUser] = useState<any>(null);
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
 
   console.log("🔝 TopNavigation render:", {
     trackedTasksCount,
     sidebarCollapsed,
-  })
+  });
+
+  // Effect to listen for authentication state changes
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (firebaseUser) => {
+      setUser(firebaseUser);
+    });
+
+    // Clean up the listener when the component unmounts
+    return () => unsubscribe();
+  }, []); // Empty dependency array means this effect runs only once on mount
+
+  // Function to handle user sign-in
+  const handleSignIn = async () => {
+    setError(null); // Clear previous errors
+    try {
+      await signInWithEmailAndPassword(auth, email, password);
+      // User state will be updated by the onAuthStateChanged listener
+      setEmail(""); // Clear form
+      setPassword(""); // Clear form
+    } catch (error: any) {
+      setError(error.message); // Display error message
+      console.error("Error signing in:", error);
+    }
+  };
+
+  // Function to handle user sign-out
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+      // User state will be updated by the onAuthStateChanged listener
+    } catch (error: any) {
+      console.error("Error signing out:", error);
+    }
+  };
 
   return (
     <header
@@ -70,8 +113,8 @@ export function TopNavigation({
           >
             <Eye className="h-4 w-4" />
             {trackedTasksCount > 0 && (
-              <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-red-600 text-white border-0 flex items-center justify-center">
-                {trackedTasksCount}
+              <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-blue-600 text-white border-0 flex items-center justify-center">
+              {trackedTasksCount}
               </Badge>
             )}
           </Button>
@@ -79,6 +122,7 @@ export function TopNavigation({
           {/* Notifications */}
           <Button variant="ghost" size="sm" className="relative text-gray-300 hover:text-white hover:bg-gray-800">
             <Bell className="h-4 w-4" />
+            {/* Corrected Badge className */}
             <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 text-xs bg-blue-600 text-white border-0 flex items-center justify-center">
               3
             </Badge>
@@ -95,30 +139,59 @@ export function TopNavigation({
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent className="w-56 bg-gray-800 border-gray-700" align="end" forceMount>
-              <DropdownMenuLabel className="font-normal">
-                <div className="flex flex-col space-y-1">
-                  <p className="text-sm font-medium leading-none text-white">Tactical Command</p>
-                  <p className="text-xs leading-none text-gray-400">admin@tacticalcommand.com</p>
+              {/* Conditional rendering based on 'user' state */}
+              {user ? (
+                // User Profile (show when logged in)
+                <>
+                  <DropdownMenuLabel className="font-normal">
+                    <div className="flex flex-col space-y-1">
+                      {/* Use user.displayName if available, otherwise show "User" */}
+                      <p className="text-sm font-medium leading-none text-white">{user.displayName || "User"}</p>
+                      {/* Display user's email */}
+                      <p className="text-xs leading-none text-gray-400">{user.email}</p>
+                    </div>
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-gray-700" />
+                  {/* Profile, Settings, Logout items here */}
+                  <DropdownMenuItem onClick={handleSignOut}>
+                    <LogOut className="mr-2 h-4 w-4" />
+                    <span>Log out</span>
+                  </DropdownMenuItem>
+                </>
+              ) : (
+                // Login Form (show when NOT logged in)
+                <div className="p-4 space-y-4">
+                  <p className="text-sm font-medium leading-none text-white text-center">Sign In</p>
+                  <div className="space-y-2">
+                    <Input
+                      type="email"
+                      placeholder="Email"
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 text-sm"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                    />
+                    <Input
+                      type="password"
+                      placeholder="Password"
+                      className="bg-gray-700 border-gray-600 text-white placeholder-gray-400 text-sm"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                  {/* Display error message if exists */}
+                  {error && <p className="text-red-500 text-sm">{error}</p>}
+                  <Button
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white text-sm"
+                    onClick={handleSignIn} // Call handleSignIn on click
+                  >
+                    Login
+                  </Button>
                 </div>
-              </DropdownMenuLabel>
-              <DropdownMenuSeparator className="bg-gray-700" />
-              <DropdownMenuItem className="text-gray-300 hover:text-white hover:bg-gray-700">
-                <User className="mr-2 h-4 w-4" />
-                <span>Profile</span>
-              </DropdownMenuItem>
-              <DropdownMenuItem className="text-gray-300 hover:text-white hover:bg-gray-700">
-                <Settings className="mr-2 h-4 w-4" />
-                <span>Settings</span>
-              </DropdownMenuItem>
-              <DropdownMenuSeparator className="bg-gray-700" />
-              <DropdownMenuItem className="text-gray-300 hover:text-white hover:bg-gray-700">
-                <LogOut className="mr-2 h-4 w-4" />
-                <span>Log out</span>
-              </DropdownMenuItem>
+              )}
             </DropdownMenuContent>
           </DropdownMenu>
         </div>
       </div>
     </header>
-  )
+  );
 }

@@ -1,14 +1,15 @@
 "use client"
+import dynamic from 'next/dynamic';
 
-import { useState } from "react"
+import { useState, useMemo } from "react"; // Import useMemo
 import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
 import { TopNavigation } from "@/components/top-navigation"
-import { TaskTracker } from "@/components/task-tracker"
+// import { TaskTracker } from "@/components/task-tracker" // Remove static import
 import { MainDashboard } from "@/components/main-dashboard"
-import { TaskBoard } from "@/components/task-board"
+// import { TaskBoard } from "@/components/task-board" // Remove static import
 import { Calendar } from "@/components/calendar"
-import { Projects } from "@/components/projects"
+import { Projects } from "@/components/projects";
 import { AIAssistant } from "@/components/ai-assistant"
 import { RecentActivity } from "@/components/recent-activity"
 import { Settings } from "@/components/settings"
@@ -16,37 +17,50 @@ import { Profile } from "@/components/profile"
 import { useMissionData } from "@/hooks/use-mission-data"
 
 export default function Page() {
+  // Dynamically import TaskBoard and TaskTracker with ssr: false
+  const TaskBoard = dynamic(() => import('../components/task-board').then(mod => mod.TaskBoard), { ssr: false });
+  const TaskTracker = dynamic(() => import('../components/task-tracker').then(mod => mod.TaskTracker), { ssr: false });
+
+
   const [activeView, setActiveView] = useState("dashboard")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(true)
   const [taskTrackerOpen, setTaskTrackerOpen] = useState(false)
 
-  const { tasks, trackedTasks, trackTask, untrackTask, isTaskTracked } = useMissionData()
+  // Conditionally use the hook and its return values
+  const missionData = useMissionData();
+  const { tasks, trackedTasks, trackTask, untrackTask, isTaskTracked } = missionData || {}; // Use optional chaining and default to empty object
 
   console.log("🏠 Main Page render:", {
     activeView,
     sidebarCollapsed,
     taskTrackerOpen,
-    trackedTasksCount: trackedTasks.length,
-    totalTasks: tasks.length,
+    trackedTasksCount: trackedTasks?.length || 0, // Safely access length
+    totalTasks: tasks?.length || 0, // Safely access length
   })
 
   const handleToggleTracking = (taskId: string) => {
     console.log("🔄 Main page handleToggleTracking:", taskId)
-    if (isTaskTracked(taskId)) {
-      untrackTask(taskId)
+    if (isTaskTracked && trackTask && untrackTask) {
+      if (isTaskTracked(taskId)) {
+        untrackTask(taskId)
+      } else {
+        trackTask(taskId);
+      }
     } else {
-      trackTask(taskId)
+      console.warn("useMissionData hook not fully initialized yet.");
     }
-  }
-
-  const handleViewChange = (view: string) => {
+  }; // Correctly closing the handleToggleTracking function
+  const handleViewChange = (view: string) => { // This function should be outside handleToggleTracking
     console.log("📱 View change:", view)
     setActiveView(view)
   }
 
-  const handleSidebarToggle = (collapsed: boolean) => {
-    console.log("📱 Sidebar toggle:", collapsed)
-    setSidebarCollapsed(collapsed)
+// ... rest of the code ...
+
+
+  function handleSidebarToggle(collapsed: boolean) {
+    console.log("📱 Sidebar toggle:", collapsed);
+    setSidebarCollapsed(collapsed);
   }
 
   const handleTaskTrackerToggle = () => {
@@ -54,10 +68,12 @@ export default function Page() {
     setTaskTrackerOpen(!taskTrackerOpen)
   }
 
-  const renderContent = () => {
+  // Use useMemo to memoize the renderContent function
+  const renderContent = useMemo(() => {
+    // The inner function directly returns the result of the switch statement
+    return () => { // Opening curly brace for the inner function
     switch (activeView) {
-      case "dashboard":
-        return <MainDashboard />
+      case "dashboard": // Corrected: Case fallthrough removed if dashboard should render MainDashboard
       case "tasks":
         return <TaskBoard onToggleTracking={handleToggleTracking} trackedTasks={trackedTasks} />
       case "calendar":
@@ -259,7 +275,8 @@ export default function Page() {
       default:
         return <MainDashboard />
     }
-  }
+  }; // Closing curly brace for the inner function
+  }, [activeView, handleToggleTracking, trackedTasks]) // Correctly formatted dependency array
 
   return (
     <div className="min-h-screen bg-black text-white">
@@ -277,21 +294,21 @@ export default function Page() {
           >
             <TopNavigation
               onToggleTaskTracker={handleTaskTrackerToggle}
-              trackedTasksCount={trackedTasks.length}
+              trackedTasksCount={trackedTasks?.length || 0}
               sidebarCollapsed={sidebarCollapsed}
             />
 
-            <main className="flex-1 pt-16 p-6 overflow-auto">{renderContent()}</main>
+            <main className="flex-1 pt-16 p-6 overflow-auto">{renderContent()}</main> {/* Call renderContent */}
           </div>
 
           <TaskTracker
             isOpen={taskTrackerOpen}
-            onClose={() => setTaskTrackerOpen(false)}
-            trackedTasks={trackedTasks}
+            onClose={() => setTaskTrackerOpen(false)}            
+            trackedTasks={trackedTasks || []} // Provide default empty array
             onToggleTracking={handleToggleTracking}
-          />
+          /> {/* Pass props to dynamically imported TaskTracker */}
         </div>
       </SidebarProvider>
     </div>
-  )
-}
+  ); // Ensure the return statement is correctly closed
+} // Ensure the Page function is correctly closed
