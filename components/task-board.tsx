@@ -93,6 +93,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
   })
   // Function to open the Add Task dialog
   const handleOpenAddTaskDialog = () => {
+    console.log("handleOpenAddTaskDialog called"); // Add this log
+
     // Define a default structure for a new task.
     const defaultNewTask: Task = {
       id: '', // Firestore will generate this
@@ -113,12 +115,20 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
       socialAccounts: [],
       comments: [],
       missionID: ''
+      // Assuming 'location' is now handled as a string
+      // location: '',
     };
 
+    console.log("Setting editedTask to:", defaultNewTask); // Add this log
     setEditedTask(defaultNewTask);
+
+    console.log("Setting isDialogOpen to true"); // Add this log
     setIsDialogOpen(true);
+
+    console.log("Setting isEditing to true"); // Add this log
     setIsEditing(true);
   };
+
 
   const toggleCategory = (category: string) => {
     setOpenCategories((prev) => ({
@@ -165,7 +175,7 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
       }
       setEditedTask({
         ...editedTask,
-        checklist: [...editedTask.checklist, newItem],
+checklist: [...(editedTask.checklist || []), newItem],
       })
       setNewChecklistItem("")
     }
@@ -175,7 +185,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
     if (editedTask) {
       setEditedTask({
         ...editedTask,
-        checklist: editedTask.checklist.map((item) =>
+        checklist: (editedTask.checklist || []).map((item) => // Provide a default empty array
+
           item.id === itemId ? { ...item, completed: !item.completed } : item,
         ),
       })
@@ -186,7 +197,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
     if (editedTask) {
       setEditedTask({
         ...editedTask,
-        checklist: editedTask.checklist.filter((item) => item.id !== itemId),
+        checklist: (editedTask.checklist || []).filter((item) => item.id !== itemId), // Provide a default empty array
+
       })
     }
   }
@@ -202,7 +214,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
       }
       setEditedTask({
         ...editedTask,
-        links: [...editedTask.links, link],
+        links: [...(editedTask.links || []), link], // Provide a default empty array
+
       })
       setNewLink({ title: "", url: "", description: "" })
     }
@@ -212,7 +225,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
     if (editedTask) {
       setEditedTask({
         ...editedTask,
-        links: editedTask.links.filter((link) => link.id !== linkId),
+        links: (editedTask.links || []).filter((link) => link.id !== linkId), // Provide a default empty array
+
       })
     }
   }
@@ -228,7 +242,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
       }
       setEditedTask({
         ...editedTask,
-        socialAccounts: [...editedTask.socialAccounts, social],
+        socialAccounts: [...(editedTask.socialAccounts || []), social], // Provide a default empty array
+
       })
       setNewSocialAccount({ platform: "", username: "", url: "" })
     }
@@ -238,7 +253,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
     if (editedTask) {
       setEditedTask({
         ...editedTask,
-        socialAccounts: editedTask.socialAccounts.filter((social) => social.id !== socialId),
+        socialAccounts: (editedTask.socialAccounts || []).filter((social) => social.id !== socialId), // Provide a default empty array
+
       })
     }
   }
@@ -253,7 +269,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
       }
       setEditedTask({
         ...editedTask,
-        comments: [...editedTask.comments, comment],
+        comments: [...(editedTask.comments || []), comment], // Provide a default empty array
+
       })
       setNewComment("")
     }
@@ -406,7 +423,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
 
       setEditedTask({
         ...editedTask,
-        attachments: [...editedTask.attachments, ...newAttachments],
+        attachments: [...(editedTask.attachments || []), ...newAttachments], // Provide a default empty array
+
       })
     }
   }
@@ -415,7 +433,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
     if (editedTask) {
       setEditedTask({
         ...editedTask,
-        attachments: editedTask.attachments.filter((att) => att.id !== attachmentId),
+        attachments: (editedTask.attachments || []).filter((att) => att.id !== attachmentId), // Provide a default empty array
+
       })
     }
   }
@@ -437,7 +456,7 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-bold text-white">TASK BOARD</h1>
-          <p className="text-gray-400">Manage and track mission-critical tasks</p>
+          <p className="text-gray-400">Manage and track project-critical tasks</p>
         </div>
         <div className="flex items-center space-x-4">
           <Button
@@ -453,6 +472,7 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
           <Badge variant="secondary" className="bg-[#cd2027] text-white">
             {trackedTasks.length} Tracked
           </Badge>
+        </div>
         </div>
 
 
@@ -629,60 +649,7 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
         })}
       </div>
 
-      {/* Enhanced Task Details Dialog */}
-      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-        <DialogContent className="bg-gray-900 border-gray-700 text-white max-w-4xl max-h-[90vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                {selectedTask && (
-                  <>
-                    {(() => {
-                      const IconComponent = getCategoryIcon(selectedTask.category)
-                      return <IconComponent className="w-5 h-5 text-blue-400" />
-                    })()}
-                    {isEditing ? "Edit Task" : selectedTask.title}
-                  </>
-                )}
-              </div>
-              <div className="flex items-center gap-2">
-                {!isEditing ? (
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={handleEditToggle}
-                    className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10 bg-transparent"
-                  >
-                    <Edit className="w-4 h-4 mr-2" />
-                    Edit
-                  </Button>
-                ) : (
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleSaveEdit}
-                      className="border-green-500/50 text-green-400 hover:bg-green-500/10 bg-transparent"
-                    >
-                      <Save className="w-4 h-4 mr-2" />
-                      Save
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleEditToggle}
-                      className="border-gray-600 text-gray-300 hover:bg-gray-800 bg-transparent"
-                    >
-                      <X className="w-4 h-4 mr-2" />
-                      Cancel
-                    </Button>
-                  </div>
-                )}
-              </div>
-            </DialogTitle>
-          </DialogHeader>
-
-          {selectedTask && (
+            {selectedTask && (
             <ScrollArea className="max-h-[calc(90vh-8rem)]">
               <div className="space-y-6 pr-4">
                 {isEditing && editedTask ? (
@@ -829,7 +796,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
                       </div>
 
                       <div className="space-y-2">
-                        {editedTask.checklist.map((item) => (
+                      {(editedTask.checklist || []).map((item) => ( // Provide a default empty array
+
                           <div key={item.id} className="flex items-center gap-2 p-2 bg-gray-800 rounded">
                             <Checkbox checked={item.completed} onCheckedChange={() => toggleChecklistItem(item.id)} />
                             <span className={`flex-1 ${item.completed ? "line-through text-gray-500" : "text-white"}`}>
@@ -866,7 +834,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
-                        {editedTask.attachments.map((attachment) => (
+                      {(editedTask.attachments || []).map((attachment) => ( // Provide a default empty array
+
                           <div key={attachment.id} className="bg-gray-800 rounded-lg p-3">
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
@@ -926,7 +895,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
                       </div>
 
                       <div className="space-y-2">
-                        {editedTask.links.map((link) => (
+                      {(editedTask.links || []).map((link) => ( // Provide a default empty array
+
                           <div key={link.id} className="flex items-center gap-2 p-3 bg-gray-800 rounded">
                             <LinkIcon className="w-4 h-4 text-blue-400" />
                             <div className="flex-1">
@@ -987,7 +957,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
                       </div>
 
                       <div className="space-y-2">
-                        {editedTask.socialAccounts.map((social) => (
+                      {(editedTask.socialAccounts || []).map((social) => ( // Provide a default empty array
+
                           <div key={social.id} className="flex items-center gap-2 p-3 bg-gray-800 rounded">
                             {getSocialIcon(social.platform)}
                             <div className="flex-1">
@@ -1032,7 +1003,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
                       </div>
 
                       <div className="space-y-3">
-                        {editedTask.comments.map((comment) => (
+                      {(editedTask.comments || []).map((comment) => ( // Provide a default empty array
+
                           <div key={comment.id} className="bg-gray-800 rounded-lg p-3">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-sm font-medium text-blue-400">{comment.author}</span>
@@ -1157,8 +1129,8 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
               </div>
             </ScrollArea>
           )}
-        </DialogContent>
+</DialogContent>
       </Dialog>
     </div>
-  )
-}
+  ); // Closing parenthesis and semicolon for the return statement
+} // Closing curly brace for the TaskBoard function
