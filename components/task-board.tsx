@@ -63,8 +63,8 @@ interface TaskBoardProps {
   trackedTasks: Task[]
 }
 
-export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
-  const { tasks, isTaskTracked, updateTaskStatus } = useMissionData()
+export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps): React.JSX.Element {
+  const { tasks, isTaskTracked, updateTaskStatus, addTask, updateTask, deleteTask } = useMissionData(); // Ensure addTask, updateTask, and deleteTask are included here
   const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({
     Film: true,
     Edit: true,
@@ -91,9 +91,10 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
     trackedTasksCount: trackedTasks.length,
     tasks: tasks.map((t) => ({ id: t.id, title: t.title, tracked: isTaskTracked(t.id) })),
   })
+
   // Function to open the Add Task dialog
   const handleOpenAddTaskDialog = () => {
-    console.log("handleOpenAddTaskDialog called"); // Add this log
+    console.log("handleOpenAddTaskDialog called")
 
     // Define a default structure for a new task.
     const defaultNewTask: Task = {
@@ -115,20 +116,18 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
       socialAccounts: [],
       comments: [],
       missionID: ''
-      // Assuming 'location' is now handled as a string
-      // location: '',
-    };
+    }
 
-    console.log("Setting editedTask to:", defaultNewTask); // Add this log
-    setEditedTask(defaultNewTask);
+    console.log("Setting editedTask to:", defaultNewTask)
+    setEditedTask(defaultNewTask)
+    setSelectedTask(defaultNewTask)
 
-    console.log("Setting isDialogOpen to true"); // Add this log
-    setIsDialogOpen(true);
+    console.log("Setting isDialogOpen to true")
+    setIsDialogOpen(true)
 
-    console.log("Setting isEditing to true"); // Add this log
-    setIsEditing(true);
-  };
-
+    console.log("Setting isEditing to true")
+    setIsEditing(true)
+  }
 
   const toggleCategory = (category: string) => {
     setOpenCategories((prev) => ({
@@ -151,13 +150,50 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
     }
   }
 
-  const handleSaveEdit = () => {
+  const handleSaveEdit = async () => { // Make the function async because adding to DB is async
     if (editedTask) {
-      console.log("Saving task:", editedTask)
-      setSelectedTask(editedTask)
-      setIsEditing(false)
+      console.log("Saving task:", editedTask);
+
+      try {
+        if (editedTask.id) {
+          await updateTask(editedTask.id, editedTask); // Use updateTask for existing tasks
+        } else {
+          await addTask(editedTask); // Use addTask for new tasks
+        }
+
+        console.log("Task saved successfully!");
+        // Optional: Show a success message to the user
+
+        setIsDialogOpen(false); // Close the dialog after saving
+        setIsEditing(false); // Exit editing mode
+        setEditedTask(null); // Clear editedTask state
+        setSelectedTask(null); // Clear selectedTask state
+
+      } catch (error) {
+        console.error("Error saving task:", error);
+        // Optional: Show an error message to the user
+      }
     }
-  }
+  };
+
+  const handleDeleteTask = async () => {
+    if (selectedTask?.id) {
+      console.log("Attempting to delete task:", selectedTask.id);
+      try {
+        // Optional: Add a confirmation dialog here before calling deleteTask
+
+        await deleteTask(selectedTask.id);
+        console.log("Task deletion initiated.");
+        setIsDialogOpen(false);
+        setSelectedTask(null);
+        // Note: editedTask is already cleared when closing the dialog, but good practice to clear it explicitly if needed elsewhere
+        setEditedTask(null);
+      } catch (error) {
+        console.error("Error deleting task:", error);
+      }
+    }
+  };
+
 
   const handleInputChange = (field: keyof Task, value: any) => {
     if (editedTask) {
@@ -175,7 +211,7 @@ export function TaskBoard({ onToggleTracking, trackedTasks }: TaskBoardProps) {
       }
       setEditedTask({
         ...editedTask,
-checklist: [...(editedTask.checklist || []), newItem],
+        checklist: [...(editedTask.checklist || []), newItem],
       })
       setNewChecklistItem("")
     }
@@ -185,8 +221,7 @@ checklist: [...(editedTask.checklist || []), newItem],
     if (editedTask) {
       setEditedTask({
         ...editedTask,
-        checklist: (editedTask.checklist || []).map((item) => // Provide a default empty array
-
+        checklist: (editedTask.checklist || []).map((item) =>
           item.id === itemId ? { ...item, completed: !item.completed } : item,
         ),
       })
@@ -197,8 +232,7 @@ checklist: [...(editedTask.checklist || []), newItem],
     if (editedTask) {
       setEditedTask({
         ...editedTask,
-        checklist: (editedTask.checklist || []).filter((item) => item.id !== itemId), // Provide a default empty array
-
+        checklist: (editedTask.checklist || []).filter((item) => item.id !== itemId),
       })
     }
   }
@@ -214,8 +248,7 @@ checklist: [...(editedTask.checklist || []), newItem],
       }
       setEditedTask({
         ...editedTask,
-        links: [...(editedTask.links || []), link], // Provide a default empty array
-
+        links: [...(editedTask.links || []), link],
       })
       setNewLink({ title: "", url: "", description: "" })
     }
@@ -225,8 +258,7 @@ checklist: [...(editedTask.checklist || []), newItem],
     if (editedTask) {
       setEditedTask({
         ...editedTask,
-        links: (editedTask.links || []).filter((link) => link.id !== linkId), // Provide a default empty array
-
+        links: (editedTask.links || []).filter((link) => link.id !== linkId),
       })
     }
   }
@@ -242,8 +274,7 @@ checklist: [...(editedTask.checklist || []), newItem],
       }
       setEditedTask({
         ...editedTask,
-        socialAccounts: [...(editedTask.socialAccounts || []), social], // Provide a default empty array
-
+        socialAccounts: [...(editedTask.socialAccounts || []), social],
       })
       setNewSocialAccount({ platform: "", username: "", url: "" })
     }
@@ -253,8 +284,7 @@ checklist: [...(editedTask.checklist || []), newItem],
     if (editedTask) {
       setEditedTask({
         ...editedTask,
-        socialAccounts: (editedTask.socialAccounts || []).filter((social) => social.id !== socialId), // Provide a default empty array
-
+        socialAccounts: (editedTask.socialAccounts || []).filter((social) => social.id !== socialId),
       })
     }
   }
@@ -264,13 +294,12 @@ checklist: [...(editedTask.checklist || []), newItem],
       const comment: Comment = {
         id: Date.now().toString(),
         text: newComment.trim(),
-        author: "Current User", // In a real app, this would be the logged-in user
+        author: "Current User",
         createdAt: new Date().toISOString(),
       }
       setEditedTask({
         ...editedTask,
-        comments: [...(editedTask.comments || []), comment], // Provide a default empty array
-
+        comments: [...(editedTask.comments || []), comment],
       })
       setNewComment("")
     }
@@ -410,12 +439,10 @@ checklist: [...(editedTask.checklist || []), newItem],
   const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
     const files = event.target.files
     if (files && editedTask) {
-      // In a real app, you would upload these files to a server
-      // For now, we'll just create mock attachments
       const newAttachments = Array.from(files).map((file) => ({
         id: Date.now().toString() + Math.random(),
         name: file.name,
-        url: URL.createObjectURL(file), // This is just for preview, in real app use server URL
+        url: URL.createObjectURL(file),
         type: file.type.startsWith("image/") ? ("image" as const) : ("document" as const),
         size: file.size,
         uploadedAt: new Date().toISOString(),
@@ -423,8 +450,7 @@ checklist: [...(editedTask.checklist || []), newItem],
 
       setEditedTask({
         ...editedTask,
-        attachments: [...(editedTask.attachments || []), ...newAttachments], // Provide a default empty array
-
+        attachments: [...(editedTask.attachments || []), ...newAttachments],
       })
     }
   }
@@ -433,8 +459,7 @@ checklist: [...(editedTask.checklist || []), newItem],
     if (editedTask) {
       setEditedTask({
         ...editedTask,
-        attachments: (editedTask.attachments || []).filter((att) => att.id !== attachmentId), // Provide a default empty array
-
+        attachments: (editedTask.attachments || []).filter((att) => att.id !== attachmentId),
       })
     }
   }
@@ -461,7 +486,7 @@ checklist: [...(editedTask.checklist || []), newItem],
         <div className="flex items-center space-x-4">
           <Button
             className="bg-blue-600 hover:bg-blue-700 text-white border border-blue-500/30"
-            onClick={handleOpenAddTaskDialog} // Add this line
+            onClick={handleOpenAddTaskDialog}
           >
             <Plus className="w-4 h-4 mr-2" />
             ADD TASK
@@ -473,8 +498,7 @@ checklist: [...(editedTask.checklist || []), newItem],
             {trackedTasks.length} Tracked
           </Badge>
         </div>
-        </div>
-
+      </div>
 
       <div className="space-y-4">
         {Object.entries(tasksByCategory).map(([category, categoryTasks]) => {
@@ -519,7 +543,6 @@ checklist: [...(editedTask.checklist || []), newItem],
                             onClick={() => handleTaskClick(task)}
                           >
                             <CardContent className="p-4">
-                              {/* Cover Image */}
                               {task.coverImage && (
                                 <div className="mb-3 -mx-4 -mt-4">
                                   <img
@@ -557,7 +580,6 @@ checklist: [...(editedTask.checklist || []), newItem],
                               </div>
 
                               <div className="space-y-3">
-                                {/* Labels */}
                                 {task.labels && task.labels.length > 0 && (
                                   <div className="flex flex-wrap gap-1">
                                     {task.labels.slice(0, 3).map((label) => (
@@ -595,7 +617,6 @@ checklist: [...(editedTask.checklist || []), newItem],
                                   <Badge className={`text-xs ${getStatusColor(task.status)}`}>{task.status}</Badge>
                                 </div>
 
-                                {/* Progress */}
                                 <div className="space-y-1">
                                   <div className="flex justify-between text-xs">
                                     <span className="text-gray-400">Progress</span>
@@ -604,7 +625,6 @@ checklist: [...(editedTask.checklist || []), newItem],
                                   <Progress value={progress} className="h-1" />
                                 </div>
 
-                                {/* Task Indicators */}
                                 <div className="flex items-center gap-3 text-xs text-gray-400">
                                   {totalChecklist > 0 && (
                                     <div className="flex items-center gap-1">
@@ -648,14 +668,92 @@ checklist: [...(editedTask.checklist || []), newItem],
           )
         })}
       </div>
+    
+      <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+        <DialogContent className="sm:max-w-[700px] bg-gray-900 border-gray-700/50 text-white">
+          <DialogHeader className="space-y-4 pb-4"> {/* Adjusted spacing and padding */}
+            <div className="flex items-center justify-between"> {/* Container for title and top-right buttons */}
+              <DialogTitle className="text-xl font-bold">
+                {isEditing ? (editedTask?.id ? "Edit Task" : "Create New Task") : "Task Details"}
+              </DialogTitle>
+              <div className="flex items-center gap-2"> {/* Container for top-right buttons */}
+                {/* Track/Untrack button - visible in both View and Edit modes */}
+                {selectedTask && ( // Only show if a task is selected
+                  <Button
+                    onClick={(e) => handleToggleTracking(selectedTask.id, e)} // Assuming handleToggleTracking is in TaskBoard
+                    variant="outline"
+                    size="sm"
+                    className={`h-8 px-3 text-xs transition-all duration-200 ${
+                      isTaskTracked(selectedTask.id) // Assuming isTaskTracked is in TaskBoard
+                        ? "border-[#cd2027]/50 text-[#cd2027] hover:bg-[#cd2027]/10"
+                        : "border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+                    }`}
+                  >
+                    {isTaskTracked(selectedTask.id) ? <EyeOff className="w-4 h-4 mr-1" /> : <Eye className="w-4 h-4 mr-1" />}
+                    {isTaskTracked(selectedTask.id) ? "Untrack" : "Track"}
+                  </Button>
+                )}
 
-            {selectedTask && (
+                {/* Edit button - visible only in View Mode for existing tasks */}
+                {!isEditing && selectedTask && (
+                  <Button
+                    onClick={handleEditToggle}
+                    variant="outline"
+                    size="sm"
+                    className="border-blue-500/50 text-blue-400 hover:bg-blue-500/10"
+                  >
+                    <Edit className="w-4 h-4 mr-2" />
+                    Edit
+                  </Button>
+                )}
+              </div>
+            </div>
+
+            {/* Save and Cancel buttons - visible only in Edit Mode */}
+            {isEditing && (
+              <div className="flex items-center gap-2 justify-end"> {/* Aligned to the right */}
+                <Button
+                  onClick={handleSaveEdit}
+                  size="sm"
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  <Save className="w-4 h-4 mr-2" />
+                  Save
+                </Button>
+                <Button
+                  onClick={handleEditToggle} // Use handleEditToggle to switch back to View Mode
+                  variant="outline"
+                  size="sm"
+                  className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                >
+                  <X className="w-4 h-4 mr-2" />
+                  Cancel
+                </Button>
+              </div>
+            )}
+
+            {/* Close button - visible only in View Mode */}
+            {!isEditing && (
+                <div className="flex justify-end"> {/* Aligned to the right */}
+                    <Button
+                        onClick={() => setIsDialogOpen(false)}
+                        variant="outline"
+                        size="sm"
+                        className="border-gray-600 text-gray-300 hover:bg-gray-800"
+                    >
+                        Close
+                    </Button>
+                </div>
+            )}
+
+          </DialogHeader>
+
+          {selectedTask && (
             <ScrollArea className="max-h-[calc(90vh-8rem)]">
               <div className="space-y-6 pr-4">
                 {isEditing && editedTask ? (
-                  // Edit Mode with Tabs
                   <Tabs defaultValue="details" className="w-full">
-                    <TabsList className="grid w-full grid-cols-6 bg-gray-800">
+                    <TabsList className="grid w-full grid-cols-6 bg-gray-800 text-white">
                       <TabsTrigger value="details">Details</TabsTrigger>
                       <TabsTrigger value="checklist">Checklist</TabsTrigger>
                       <TabsTrigger value="attachments">Files</TabsTrigger>
@@ -663,7 +761,6 @@ checklist: [...(editedTask.checklist || []), newItem],
                       <TabsTrigger value="social">Social</TabsTrigger>
                       <TabsTrigger value="comments">Comments</TabsTrigger>
                     </TabsList>
-
                     <TabsContent value="details" className="space-y-4">
                       <div className="grid grid-cols-2 gap-4">
                         <div className="space-y-2">
@@ -796,8 +893,7 @@ checklist: [...(editedTask.checklist || []), newItem],
                       </div>
 
                       <div className="space-y-2">
-                      {(editedTask.checklist || []).map((item) => ( // Provide a default empty array
-
+                        {(editedTask.checklist || []).map((item) => (
                           <div key={item.id} className="flex items-center gap-2 p-2 bg-gray-800 rounded">
                             <Checkbox checked={item.completed} onCheckedChange={() => toggleChecklistItem(item.id)} />
                             <span className={`flex-1 ${item.completed ? "line-through text-gray-500" : "text-white"}`}>
@@ -834,8 +930,7 @@ checklist: [...(editedTask.checklist || []), newItem],
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
-                      {(editedTask.attachments || []).map((attachment) => ( // Provide a default empty array
-
+                        {(editedTask.attachments || []).map((attachment) => (
                           <div key={attachment.id} className="bg-gray-800 rounded-lg p-3">
                             <div className="flex items-center justify-between mb-2">
                               <div className="flex items-center gap-2">
@@ -895,8 +990,7 @@ checklist: [...(editedTask.checklist || []), newItem],
                       </div>
 
                       <div className="space-y-2">
-                      {(editedTask.links || []).map((link) => ( // Provide a default empty array
-
+                        {(editedTask.links || []).map((link) => (
                           <div key={link.id} className="flex items-center gap-2 p-3 bg-gray-800 rounded">
                             <LinkIcon className="w-4 h-4 text-blue-400" />
                             <div className="flex-1">
@@ -957,8 +1051,7 @@ checklist: [...(editedTask.checklist || []), newItem],
                       </div>
 
                       <div className="space-y-2">
-                      {(editedTask.socialAccounts || []).map((social) => ( // Provide a default empty array
-
+                        {(editedTask.socialAccounts || []).map((social) => (
                           <div key={social.id} className="flex items-center gap-2 p-3 bg-gray-800 rounded">
                             {getSocialIcon(social.platform)}
                             <div className="flex-1">
@@ -1003,8 +1096,7 @@ checklist: [...(editedTask.checklist || []), newItem],
                       </div>
 
                       <div className="space-y-3">
-                      {(editedTask.comments || []).map((comment) => ( // Provide a default empty array
-
+                        {(editedTask.comments || []).map((comment) => (
                           <div key={comment.id} className="bg-gray-800 rounded-lg p-3">
                             <div className="flex items-center justify-between mb-2">
                               <span className="text-sm font-medium text-blue-400">{comment.author}</span>
@@ -1019,7 +1111,6 @@ checklist: [...(editedTask.checklist || []), newItem],
                     </TabsContent>
                   </Tabs>
                 ) : (
-                  // View Mode
                   <div className="space-y-4">
                     <div>
                       <h3 className="text-xl font-semibold text-white mb-2">{selectedTask.title}</h3>
@@ -1064,7 +1155,6 @@ checklist: [...(editedTask.checklist || []), newItem],
                       <p className="text-gray-300 text-sm leading-relaxed">{selectedTask.description}</p>
                     </div>
 
-                    {/* Quick Stats */}
                     <div className="grid grid-cols-4 gap-4 text-center">
                       <div className="bg-gray-800 rounded-lg p-3">
                         <CheckSquare className="w-5 h-5 text-blue-400 mx-auto mb-1" />
@@ -1128,9 +1218,8 @@ checklist: [...(editedTask.checklist || []), newItem],
                 )}
               </div>
             </ScrollArea>
-          )}
-</DialogContent>
-      </Dialog>
-    </div>
-  ); // Closing parenthesis and semicolon for the return statement
-} // Closing curly brace for the TaskBoard function
+          )}</DialogContent>
+        </Dialog>
+      </div>
+    );
+  }

@@ -1,9 +1,9 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import type { Task, Mission, SystemStatus, Alert } from "@/lib/types"
 
-import { getFirestore, collection, onSnapshot } from "firebase/firestore"; // Import Firestore functions
+import { getFirestore, collection, onSnapshot, addDoc, doc, updateDoc, deleteDoc } from "firebase/firestore"; // Import necessary Firestore functions
 import app from "@/lib/firebase"; // Import the Firebase app instance
 
 // Initialize Firestore
@@ -63,11 +63,37 @@ export function useMissionData() {
     )
   }
 
-  const addTask = (newTask: Omit<Task, "id" | "createdAt" | "updatedAt">) => {
-    // This function is likely called from TaskBoard after successfully adding to Firestore
-    // We don't need to manually add to local state here because onSnapshot will handle it
-    console.log("addTask in hook called, but onSnapshot handles state update.");
-  }
+  // Add a new task to Firestore
+  const addTask = async (taskData: Omit<Task, "id" | "createdAt" | "updatedAt">) => {
+    try {
+      console.log("Adding task to Firestore:", taskData);
+      const tasksCollection = collection(db, "tasks");
+      const docRef = await addDoc(tasksCollection, {
+        ...taskData,
+        createdAt: new Date().toISOString(), // Or use serverTimestamp()
+        updatedAt: new Date().toISOString(), // Or use serverTimestamp()
+      });
+      console.log("Task successfully added to Firestore with ID:", docRef.id);
+      // onSnapshot listener will handle updating the local state
+    } catch (error) {
+      console.error("Error adding task to Firestore:", error);
+      throw error; // Re-throw the error so it can be caught in handleSaveEdit
+    }
+  };
+
+  const updateTask = async (taskId: string, taskData: Partial<Task>) => {
+    try {
+      console.log("Updating task in Firestore:", taskId, taskData);
+      const taskRef = doc(db, "tasks", taskId); // Get a reference to the specific task document
+      await updateDoc(taskRef, taskData); // Update the document with the provided data
+      console.log("Task successfully updated in Firestore:", taskId);
+      // onSnapshot listener will handle updating the local state
+    } catch (error) {
+      console.error("Error updating task in Firestore:", error);
+      throw error; // Re-throw the error
+    }
+  };
+
 
   const deleteTask = (taskId: string) => {
     // You would typically delete from Firestore here as well
@@ -114,5 +140,8 @@ export function useMissionData() {
     addTask, // Keep for now, but its role might change
     deleteTask, // Keep for now, but its role might change
     acknowledgeAlert,
+    updateTask, // Expose the new updateTask function
+
+  };
   }
-}
+
